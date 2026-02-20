@@ -1,10 +1,10 @@
 # team2-S26-CS320
-Repository for Team #2 Spring 26 CS 320, or is it?
-Repository for Team #2 Spring 26 CS 320, maybe?
-Repository for Team #2 Spring 26 CS 320, are we sure?
-Repository for Team #2 Spring 26 CS 320, I believe so.
-Repository for Team #2 Spring 26 CS 320, in that case, what do we do?
-Repository for Team #2 Spring 26 CS 320, we design.
-Repository for Team #2 Spring 26 CS 320, then we discuss?
-Repository for Team #2 Spring 26 CS 320, yes, and then...
-Repository for Team #2 Spring 26 CS 320, we code and present!
+Repository for Team #2 Spring 26 CS 320
+Repository for Team #2 Spring 26 CS 320
+Repository for Team #2 Spring 26 CS 320
+Repository for Team #2 Spring 26 CS 320
+Repository for Team #2 Spring 26 CS 320
+Repository for Team #2 Spring 26 CS 320
+Repository for Team #2 Spring 26 CS 320
+Repository for Team #2 Spring 26 CS 320
+Repository for Team #2 Spring 26 CS 320
