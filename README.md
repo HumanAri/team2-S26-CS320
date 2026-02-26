@@ -6,6 +6,6 @@ Repository for Team #2 Spring 26 CS 320, I believe so.
 Repository for Team #2 Spring 26 CS 320, in that case, what do we do?
 Repository for Team #2 Spring 26 CS 320, we design.
 Repository for Team #2 Spring 26 CS 320, then we discuss?
-Marko's change for step 3
+Dereks change
 Repository for Team #2 Spring 26 CS 320, we code and present!
 Vedaant
