@@ -1,5 +1,5 @@
 # team2-S26-CS320
-Repository for Team #2 Spring 26 CS 320, or is it?
+Repository for Team #2 Spring 26 CS 320, or is it? Jared
 Repository for Team #2 Spring 26 CS 320, maybe?
 Repository for Team #2 Spring 26 CS 320, are we sure?
 Repository for Team #2 Spring 26 CS 320, I believe so.
