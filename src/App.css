@@ -1,0 +1,292 @@
+/* ============================================================
+   Taskify – Global Styles
+   ============================================================ */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* ---------- Theme Tokens ---------- */
+:root {
+  --card-bg:          #faf8f5;
+  --card-shadow:      0 20px 60px rgba(0, 0, 0, 0.1);
+  --text-primary:     #2c2825;
+  --text-muted:       #7a7068;
+  --input-bg:         #edebe6;
+  --input-border:     transparent;
+  --input-focus:      #8a7460;
+  --input-icon-color: #a09486;
+  --alt-link-color:   #8a7460;
+  --toggle-knob:      #ffffff;
+}
+
+:root[data-theme="dark"] {
+  --card-bg:          #2e2b27;
+  --card-shadow:      0 20px 60px rgba(0, 0, 0, 0.4);
+  --text-primary:     #f0ece6;
+  --text-muted:       #9a9088;
+  --input-bg:         #201e1b;
+  --input-border:     transparent;
+  --input-focus:      #b8966e;
+  --input-icon-color: #6a6258;
+  --alt-link-color:   #b8966e;
+  --toggle-knob:      #f0ece6;
+}
+
+/* ---------- Page Background ---------- */
+html {
+  min-height: 100%;
+  background: linear-gradient(145deg, #e4dfd7 0%, #d8d1c8 55%, #cec7bc 100%);
+  transition: background 0.4s ease;
+}
+
+html[data-theme="dark"] {
+  background: linear-gradient(145deg, #1e1c19 0%, #252220 55%, #2a2825 100%);
+}
+
+body {
+  min-height: 100vh;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Decorative blobs */
+body::before,
+body::after {
+  content: '';
+  position: fixed;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  pointer-events: none;
+}
+
+body::before {
+  width: 650px;
+  height: 650px;
+  top: -220px;
+  left: -180px;
+}
+
+body::after {
+  width: 550px;
+  height: 550px;
+  bottom: -180px;
+  right: -150px;
+}
+
+/* ---------- Brand (top-left) ---------- */
+.brand {
+  position: fixed;
+  top: 1.5rem;
+  left: 1.75rem;
+  z-index: 10;
+}
+
+.brand-logo-img {
+  height: 36px;
+  width: auto;
+}
+
+/* ---------- Theme Toggle (top-right) ---------- */
+.theme-toggle {
+  position: fixed;
+  top: 1.5rem;
+  right: 1.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  user-select: none;
+  z-index: 10;
+}
+
+.toggle-icon { font-size: 0.9rem; }
+
+.toggle-track {
+  width: 44px;
+  height: 24px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.2);
+  position: relative;
+  transition: background 0.3s ease;
+  flex-shrink: 0;
+}
+
+[data-theme="dark"] .toggle-track { background: #8a7460; }
+
+.toggle-knob {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--toggle-knob);
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  transition: transform 0.3s ease;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+
+[data-theme="dark"] .toggle-knob { transform: translateX(20px); }
+
+/* ---------- Card ---------- */
+.card {
+  background: var(--card-bg);
+  border-radius: 1.25rem;
+  padding: 2.5rem 2.25rem 2rem;
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  box-shadow: var(--card-shadow);
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+  position: relative;
+  z-index: 1;
+}
+
+/* ---------- Tab Row ---------- */
+.tab-row {
+  display: flex;
+  width: 100%;
+  background: var(--input-bg);
+  border-radius: 999px;
+  padding: 4px;
+  gap: 0;
+}
+
+.tab {
+  flex: 1;
+  padding: 0.5rem 1rem;
+  border: none;
+  background: transparent;
+  border-radius: 999px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.tab.active {
+  background: var(--card-bg);
+  color: var(--text-primary);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* ---------- Form ---------- */
+form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* ---------- Inputs ---------- */
+.input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-icon {
+  position: absolute;
+  left: 1rem;
+  width: 18px;
+  height: 18px;
+  color: var(--input-icon-color);
+  pointer-events: none;
+  transition: color 0.2s ease;
+  flex-shrink: 0;
+}
+
+input {
+  width: 100%;
+  padding: 0.8rem 1rem 0.8rem 2.75rem;
+  border-radius: 999px;
+  border: 2px solid var(--input-border);
+  background: var(--input-bg);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.2s ease, background 0.3s ease, color 0.3s ease;
+}
+
+input::placeholder { color: var(--text-muted); }
+input:focus { border-color: var(--input-focus); }
+.input-wrapper:focus-within .input-icon { color: var(--input-focus); }
+
+/* ---------- Hippo Button ---------- */
+.btn-hippo {
+  width: 100%;
+  border: 0;
+  padding: 6px 0 0;
+  background: transparent;
+  cursor: pointer;
+  display: block;
+}
+
+.btn-hippo svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  overflow: visible;
+}
+
+/* Hippo SVG fills */
+.ear-left-outer,  .ear-right-outer               { fill: #919191; }
+.ear-left-inner,  .ear-right-inner               { fill: #6d6d6d; }
+.eye-right-outer, .eye-left-outer,
+.nostril-right-outer, .nostril-left-outer, .body  { fill: #aaaaaa; }
+.eye-right-inner, .eye-left-inner                { fill: #ffffff; }
+.eye-right-pupil, .eye-left-pupil                { fill: #2d2d2d; }
+.nostril-right-inner, .nostril-left-inner         { fill: #8c8c8c; }
+.freckle                                          { fill: #7c7c7c; }
+.mouth-back                                       { fill: #1a2a35; }
+.tongue                                           { fill: #e05a5a; }
+.tooth-left, .tooth-right                        { fill: #ffffe1; }
+
+.hippo-label {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 2.5px;
+  fill: #2c2825;
+  pointer-events: none;
+  user-select: none;
+}
+
+[data-theme="dark"] .hippo-label { fill: #f0ece6; }
+
+/* ---------- Error Message ---------- */
+.error-msg {
+  display: none;
+  color: #b04040;
+  font-size: 0.85rem;
+  text-align: center;
+  margin-top: -0.25rem;
+}
+
+.error-msg.visible { display: block; }
+
+/* ---------- Alt Link ---------- */
+.alt-link {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin-top: -0.25rem;
+}
+
+.alt-link span {
+  color: var(--alt-link-color);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.alt-link span:hover { text-decoration: underline; }
