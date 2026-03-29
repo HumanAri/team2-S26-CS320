@@ -9,7 +9,7 @@ export interface Task {
   id: string;
   name: string;
   category: string;
-  date: string;
+  dueDate: string;
   startTime: string;
   endTime: string;
   recurringDays: string[];

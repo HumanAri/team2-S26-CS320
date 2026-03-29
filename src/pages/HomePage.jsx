@@ -2,6 +2,7 @@ import { useState } from 'react'
 import Brand from '../components/Brand'
 import ThemeToggle from '../components/ThemeToggle'
 import FriendsWidget from '../components/FriendsWidget'
+import UpcomingTasksBar from '../components/UpcomingTasksBar'
 import { Plus, FolderPlus } from 'lucide-react'
 
 /** @typedef {import('../types/task').Task} Task */
@@ -9,6 +10,34 @@ import { Plus, FolderPlus } from 'lucide-react'
 /** @typedef {import('../types/task').Category} Category */
 
 export default function HomePage() {
+
+  const [categories, setCategories] = useState([
+    { name: "CS 230", color: "#b7e4ee", priority: 1 },
+    { name: "Gym", color: "#f6de95", priority: 1 },
+  ])
+  
+  const [tasks, setTasks] = useState([
+    { 
+      id: "1", 
+      name: "Make Homepage UI", 
+      category: "CS 230", 
+      dueDate: "3/29", 
+      startTime: "2:00 PM",
+      endTime: "",
+      recurringDays: [],
+      completed: false
+    },
+    { 
+      id: "2", 
+      name: "LEG DAY!!!", 
+      category: "Gym", 
+      dueDate: "3/29", 
+      startTime: "3:00 PM",
+      endTime: "",
+      recurringDays: [],
+      completed: false
+    }
+  ])
 
   const [friends, setFriends] = useState([
     { id: "1", name: "Mike G.", avatar: "👨", tasksCompleted: 4, totalTasks: 9 },
@@ -40,7 +69,9 @@ export default function HomePage() {
         </div>
       </div>
 
-      <div className="home-upcoming-section"></div>
+      <div className="home-upcoming-section">
+        <UpcomingTasksBar tasks={tasks} categories={categories} onTaskClick={()=>{}} />
+      </div>
     </div>
   )
 }
