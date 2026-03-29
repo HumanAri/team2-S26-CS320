@@ -10,10 +10,11 @@
     "deploy": "gh-pages -d dist"
   },
   "dependencies": {
+    "gsap": "^3.12.5",
+    "lucide-react": "^1.7.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^6.28.0",
-    "gsap": "^3.12.5"
+    "react-router-dom": "^6.28.0"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.4",

@@ -19,6 +19,8 @@
   --input-focus:      #8a7460;
   --input-icon-color: #a09486;
   --alt-link-color:   #8a7460;
+  --button-color-1:   #d8e6ff;
+  --button-color-2:   #d7f5e8;
   --toggle-knob:      #ffffff;
 }
 
@@ -32,6 +34,8 @@
   --input-focus:      #b8966e;
   --input-icon-color: #6a6258;
   --alt-link-color:   #b8966e;
+  --button-color-1:   #3a4f73;
+  --button-color-2:   #2f5c4b;
   --toggle-knob:      #f0ece6;
 }
 
@@ -290,3 +294,83 @@ input:focus { border-color: var(--input-focus); }
 }
 
 .alt-link span:hover { text-decoration: underline; }
+
+/* ---------- Home Page Layout ---------- */
+.home-page {
+  position: fixed;
+  inset: 0;
+  padding: 1rem;
+  display: grid;
+  grid-template-rows: 64px 1fr 180px;
+  gap: 1rem;
+  z-index: 1;
+}
+
+.home-top-bar,
+.home-calendar-section,
+.home-friends-section,
+.home-upcoming-section {
+  background: var(--card-bg);
+  color: var(--text-primary);
+  border-radius: 1rem;
+  box-shadow: var(--card-shadow);
+  padding: 1rem;
+}
+
+.home-top-bar {
+  margin: -1rem -1rem 0;
+  border-radius: 0;
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: center;
+}
+
+.home-top-bar-buttons {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-left: 0.9rem;
+}
+
+.home-pill-placeholder {
+  width: 170px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+.home-pill-button {
+  min-width: 170px;
+  border: 0;
+  border-radius: 999px;
+  padding: 0.65rem 0.9rem;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-weight: 600;
+  display: inline-grid;
+  grid-template-columns: 18px 1fr;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+}
+
+.home-pill-button span {
+  text-align: center;
+}
+
+.home-pill-button-1 { background: var(--button-color-1); }
+.home-pill-button-2 { background: var(--button-color-2); }
+
+.home-main-row {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 4fr 1fr;
+  gap: 1rem;
+}
+
+.home-calendar-section,
+.home-friends-section,
+.home-upcoming-section {
+  min-height: 0;
+}
