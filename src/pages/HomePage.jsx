@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import Brand from '../components/Brand'
 import ThemeToggle from '../components/ThemeToggle'
+import FriendsWidget from '../components/FriendsWidget'
 import { Plus, FolderPlus } from 'lucide-react'
 
 /** @typedef {import('../types/task').Task} Task */
@@ -7,6 +9,12 @@ import { Plus, FolderPlus } from 'lucide-react'
 /** @typedef {import('../types/task').Category} Category */
 
 export default function HomePage() {
+
+  const [friends, setFriends] = useState([
+    { id: "1", name: "Mike G.", avatar: "👨", tasksCompleted: 4, totalTasks: 9 },
+    { id: "2", name: "Ella H.", avatar: "👩", tasksCompleted: 11, totalTasks: 11 },
+  ]);
+
   return (
     <div className="home-page">
       <div className="home-top-bar">
@@ -27,7 +35,9 @@ export default function HomePage() {
 
       <div className="home-main-row">
         <div className="home-calendar-section"></div>
-        <div className="home-friends-section"></div>
+        <div className="home-friends-section">
+          <FriendsWidget friends={friends} onAddFriendClick={()=>{}} />
+        </div>
       </div>
 
       <div className="home-upcoming-section"></div>
