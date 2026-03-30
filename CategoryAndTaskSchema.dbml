@@ -1,0 +1,38 @@
+Table semesters {
+  id uuid [primary key]
+  user_id uuid [not null, note: 'references users table']
+  name varchar [not null, note: 'e.g. Fall 2025']
+  start_date timestamp [not null]
+  end_date timestamp [not null]
+  created_at timestamp
+}
+
+Table categories {
+  id uuid [primary key]
+  user_id uuid [not null, note: 'references users table']
+  semester_id uuid [not null, ref: > semesters.id]
+  name varchar [not null]
+  priority integer [not null, note: '1-10']
+  color varchar
+}
+
+Table tasks {
+  id uuid [primary key]
+  user_id uuid [not null, note: 'references users table']
+  category_id uuid [not null, ref: > categories.id]
+  title varchar [not null]
+  description text
+  due_date timestamp
+  start_time timestamp
+  end_time timestamp
+  status varchar [not null, note: 'complete, incomplete']
+  is_recurring boolean [default: false]
+  created_at timestamp
+  completed_at timestamp [note: 'null until task is marked complete']
+}
+
+Table recurrence_days {
+  id uuid [primary key]
+  task_id uuid [not null, ref: > tasks.id]
+  day_of_week integer [not null, note: '0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat']
+}
