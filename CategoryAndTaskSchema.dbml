@@ -1,3 +1,14 @@
+Table users {
+  id uuid [pk]
+  google_id varchar [unique, not null]
+  email varchar [unique, not null]
+  email_verified boolean [not null, default: false]
+  display_name varchar
+  first_name varchar
+  last_name varchar
+  profile_picture text
+}
+
 Table semesters {
   id uuid [primary key]
   user_id uuid [not null, note: 'references users table']
@@ -36,3 +47,7 @@ Table recurrence_days {
   task_id uuid [not null, ref: > tasks.id]
   day_of_week integer [not null, note: '0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat']
 }
+
+Ref: semesters.user_id > users.id
+Ref: categories.user_id > users.id
+Ref: tasks.user_id > users.id
