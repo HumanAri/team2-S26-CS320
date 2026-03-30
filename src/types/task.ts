@@ -16,16 +16,6 @@ export interface Task {
   completed?: boolean;
 }
 
-export interface CalendarTask {
-  id: string;
-  name: string;
-  category: Category;
-  day: number;
-  startHour: number;
-  duration: number;
-  completed?: boolean;
-}
-
 export interface Friend {
   id: string;
   name: string;
