@@ -1,19 +1,23 @@
 # team2-S26-CS320
 
 ## Setup
-Before running, create a backend/.env file with:
-GOOGLE_CLIENT_ID=...
-JWT_SECRET="..."
-
-Also create a .env file in the root with:
-VITE_GOOGLE_CLIENT_ID=...
-
-I will give the GOOGLE_CLIENT_ID and JWT_SECRET on slack
+  1. Create a .env file in the root folder with:
+      VITE_GOOGLE_CLIENT_ID=...
+  2. create a backend/.env file with:
+      GOOGLE_CLIENT_ID=...
+      JWT_SECRET="..."
+      ALLOWED_ORIGINS="http://localhost:5173"
+  * Notes:
+    * The VITE_GOOGLE_CLIENT_ID and GOOGLE_CLIENT_ID do not go in quotes or anything
+    * The JWT_SECRET is in quotes
+    * I will post the GOOGLE_CLIENT_ID, JWT_SECRET, and VITE_GOOGLE_CLIENT_ID on slack
 
 ## How to test and run this:
-  1. cd backend
-  2. pip install -r requirements.txt
-  3. uvicorn main:app --reload
+  1. Make sure you're in team2-S26-CS320 directory
+  2. npm install
+  3. npm run dev
   4. Open a separate terminal
-  5. npm install
-  6. npm run dev
+  5. cd backend
+  6. pip install -r requirements.txt (If this doesnt work, try: pip3 install -r requirements.txt)
+  7. uvicorn main:app --reload
+  8. Open a browser and go to: http://localhost:5173

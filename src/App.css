@@ -290,3 +290,37 @@ input:focus { border-color: var(--input-focus); }
 }
 
 .alt-link span:hover { text-decoration: underline; }
+
+/* ---------- Divider ---------- */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  margin: 0.25rem 0;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-color, #ddd);
+}
+
+/* ---------- UMass Sign-In Button ---------- */
+.umass-btn {
+  width: 100%;
+  padding: 0.65rem 1rem;
+  background: #881c1c;
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.umass-btn:hover { background: #6e1616; }
