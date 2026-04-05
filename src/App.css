@@ -19,8 +19,8 @@
   --input-focus:      #8a7460;
   --input-icon-color: #a09486;
   --alt-link-color:   #8a7460;
-  --button-color-1:   #d8e6ff;
-  --button-color-2:   #d7f5e8;
+  --button-color-1:   #cef5ca;
+  --button-color-2:   #e8dcf0;
   --toggle-knob:      #ffffff;
 }
 
@@ -34,8 +34,8 @@
   --input-focus:      #b8966e;
   --input-icon-color: #6a6258;
   --alt-link-color:   #b8966e;
-  --button-color-1:   #3a4f73;
-  --button-color-2:   #2f5c4b;
+  --button-color-1:   #a8c9a5;
+  --button-color-2:   #e8dcf0;
   --toggle-knob:      #f0ece6;
 }
 
@@ -100,7 +100,6 @@ body::after {
 
 /* ---------- Theme Toggle (top-right) ---------- */
 .theme-toggle {
-  position: fixed;
   top: 1.5rem;
   right: 1.75rem;
   display: flex;
@@ -332,6 +331,11 @@ input:focus { border-color: var(--input-focus); }
   margin-left: 0.9rem;
 }
 
+.home-top-bar-spacer {
+  width: 500px;
+  flex: 2;
+}
+
 .home-pill-placeholder {
   width: 170px;
   height: 1px;
@@ -361,6 +365,44 @@ input:focus { border-color: var(--input-focus); }
 
 .home-pill-button-1 { background: var(--button-color-1); }
 .home-pill-button-2 { background: var(--button-color-2); }
+
+.home-profile-button {
+  border: 0;
+  background: transparent;
+  color: var(--text-primary);
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  cursor: pointer;
+}
+
+.home-top-bar-toggle-buffer {
+  width: 4.75rem;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+.home-profile-button-circle {
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--button-color-2);
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.home-profile-button-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
 
 .home-main-row {
   min-height: 0;
@@ -652,6 +694,10 @@ input:focus { border-color: var(--input-focus); }
   background: var(--input-bg);
 }
 
+.friends-widget-card-request {
+  grid-template-columns: 48px 1fr auto;
+}
+
 .friends-widget-avatar {
   width: 48px;
   height: 48px;
@@ -665,6 +711,33 @@ input:focus { border-color: var(--input-focus); }
 
 .friends-widget-card-body {
   min-width: 0;
+}
+
+.friends-widget-request-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.friends-widget-request-button {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-primary);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.friends-widget-request-button-accept {
+  background: var(--button-color-1);
+}
+
+.friends-widget-request-button-reject {
+  background: var(--button-color-2);
 }
 
 .friends-widget-name {
@@ -781,7 +854,7 @@ input:focus { border-color: var(--input-focus); }
   width: 28px;
   height: 28px;
   border-radius: 999px;
-  background: var(--button-color-2);
+  background: var(--button-color-1);
   display: inline-flex;
   align-items: center;
   justify-content: center;

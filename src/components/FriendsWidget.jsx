@@ -1,9 +1,14 @@
 
-
 /** @typedef {import('../types/task').Friend} Friend */
-import { Plus } from 'lucide-react'
+import { Check, Plus, X } from 'lucide-react'
 
-export default function FriendsWidget({friends, onAddFriendClick}) {
+export default function FriendsWidget({
+    friends,
+    friendRequest,
+    onAcceptFriendRequest,
+    onRejectFriendRequest,
+    onAddFriendClick
+}) {
     return (
         <section className="friends-widget">
             <div className="friends-widget-header">
@@ -19,6 +24,36 @@ export default function FriendsWidget({friends, onAddFriendClick}) {
             </div>
 
             <div className="friends-widget-list">
+                {friendRequest ? (
+                    <article className="friends-widget-card friends-widget-card-request">
+                        <div className="friends-widget-avatar" aria-hidden="true">
+                            {friendRequest.avatar}
+                        </div>
+                        <div className="friends-widget-card-body">
+                            <p className="friends-widget-name">{friendRequest.name}</p>
+                            <p className="friends-widget-tasks">Incoming friend request</p>
+                        </div>
+                        <div className="friends-widget-request-actions">
+                            <button
+                                type="button"
+                                className="friends-widget-request-button friends-widget-request-button-accept"
+                                onClick={onAcceptFriendRequest}
+                                aria-label={`Accept friend request from ${friendRequest.name}`}
+                            >
+                                <Check size={16} aria-hidden="true" />
+                            </button>
+                            <button
+                                type="button"
+                                className="friends-widget-request-button friends-widget-request-button-reject"
+                                onClick={onRejectFriendRequest}
+                                aria-label={`Reject friend request from ${friendRequest.name}`}
+                            >
+                                <X size={16} aria-hidden="true" />
+                            </button>
+                        </div>
+                    </article>
+                ) : null}
+
                 {friends.map((friend) => (
                     <article key={friend.id} className="friends-widget-card">
                         <div className="friends-widget-avatar" aria-hidden="true">
