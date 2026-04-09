@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useGoogleLogin } from '@react-oauth/google'
 import Brand from '../components/Brand'
 import ThemeToggle from '../components/ThemeToggle'
 import HippoButton from '../components/HippoButton'
@@ -11,6 +12,31 @@ export default function SignupPage() {
   const [password, setPassword]             = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError]                   = useState('')
+
+  const umassSignup = useGoogleLogin({
+    flow: 'implicit',
+    hint: 'umass.edu',
+    onSuccess: async (tokenResponse) => {
+      setError('')
+      try {
+        const res = await fetch('http://localhost:8000/api/auth/google', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: tokenResponse.access_token }),
+        })
+        const data = await res.json()
+        if (!res.ok) {
+          setError(data.detail || 'Sign up failed')
+          return
+        }
+        localStorage.setItem('token', data.token)
+        navigate('/onboarding/1')
+      } catch {
+        setError('Could not connect to server')
+      }
+    },
+    onError: () => setError('UMass sign-up failed'),
+  })
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -28,11 +54,12 @@ export default function SignupPage() {
     //     body: JSON.stringify({ name, email, password })
     //   })
     //   if (!res.ok) throw new Error('Registration failed. Please try again.')
-    //   navigate('/')
     // } catch (err) {
     //   setError(err.message)
+    //   return
     // }
     console.log('Signup submitted:', { name, email, password })
+    navigate('/onboarding/1')
   }
 
   return (
@@ -108,6 +135,10 @@ export default function SignupPage() {
           {error && <p className="error-msg visible" role="alert">{error}</p>}
           <HippoButton label="SIGN UP" id="signup" />
         </form>
+        <div className="divider"><span>or</span></div>
+        <button className="umass-btn" onClick={() => umassSignup()}>
+          Sign Up with UMass Email
+        </button>
         <p className="alt-link">Already a member? <span onClick={() => navigate('/')}>Login</span></p>
       </div>
     </>
