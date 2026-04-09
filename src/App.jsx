@@ -3,6 +3,7 @@ import { ThemeProvider } from './context/ThemeContext'
 import { OnboardingProvider } from './context/OnboardingContext'
 import LoginPage    from './pages/LoginPage'
 import SignupPage   from './pages/SignupPage'
+import HomePage     from './pages/HomePage'
 import Step1Emoji      from './pages/onboarding/Step1Emoji'
 import Step2Categories from './pages/onboarding/Step2Categories'
 import Step3Priority   from './pages/onboarding/Step3Priority'
@@ -17,6 +18,7 @@ export default function App() {
           <Routes>
             <Route path="/"            element={<LoginPage />} />
             <Route path="/signup"      element={<SignupPage />} />
+            <Route path="/home"        element={<HomePage />} />
             <Route path="/onboarding/1" element={<Step1Emoji />} />
             <Route path="/onboarding/2" element={<Step2Categories />} />
             <Route path="/onboarding/3" element={<Step3Priority />} />

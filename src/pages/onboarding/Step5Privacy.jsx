@@ -28,11 +28,10 @@ export default function Step5Privacy() {
 
   const handleDone = () => {
     update('privacy', privacy)
-    // TODO: send full onboarding payload to backend, then navigate to dashboard
-    navigate('/')
+    navigate('/home')
   }
 
-  const handleSkip = () => navigate('/')
+  const handleSkip = () => navigate('/home')
 
   return (
     <OnboardingLayout

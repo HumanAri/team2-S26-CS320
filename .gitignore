@@ -5,3 +5,4 @@ dist
 backend/.env
 backend/venv
 backend/__pycache__
+.codex
