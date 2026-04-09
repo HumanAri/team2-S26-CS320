@@ -28,11 +28,12 @@ export default function SignupPage() {
     //     body: JSON.stringify({ name, email, password })
     //   })
     //   if (!res.ok) throw new Error('Registration failed. Please try again.')
-    //   navigate('/')
     // } catch (err) {
     //   setError(err.message)
+    //   return
     // }
     console.log('Signup submitted:', { name, email, password })
+    navigate('/onboarding/1')
   }
 
   return (
