@@ -1,7 +1,7 @@
 # team2-S26-CS320
 
 ## Setup
-  1. Create a .env file in the root folder with:
+  1. Create a .env file in the root folder(TEAM2-S36-CS320) with:
       VITE_GOOGLE_CLIENT_ID=...
   2. create a backend/.env file with:
       GOOGLE_CLIENT_ID=...
@@ -14,10 +14,14 @@
 
 ## How to test and run this:
   1. Make sure you're in team2-S26-CS320 directory
-  2. npm install
-  3. npm run dev
-  4. Open a separate terminal
-  5. cd backend
-  6. pip install -r requirements.txt (If this doesnt work, try: pip3 install -r requirements.txt)
-  7. uvicorn main:app --reload
-  8. Open a browser and go to: http://localhost:5173
+  2. Create the venv virtual environment, inside terminal:
+    * cd backend
+    * python3 -m venv venv
+    * source venv/bin/activate
+    * pip install -r requirements.txt (If this doesn't work, try pip3 install -r requirements.txt)
+  3. Open a separate terminal in the root directory:
+    * npm install
+    * npm run dev
+  4. In your backend terminal, run:
+    * uvicorn main:app --reload
+  5. Open a browser and go to: http://localhost:5173
