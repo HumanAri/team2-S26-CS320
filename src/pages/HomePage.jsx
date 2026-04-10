@@ -4,12 +4,18 @@ import ThemeToggle from '../components/ThemeToggle'
 import FriendsWidget from '../components/FriendsWidget'
 import UpcomingTasksBar from '../components/UpcomingTasksBar'
 import CalendarWidget from '../components/CalendarWidget'
+import AddTaskModal from '../components/AddTaskModal'
+import AddCategoryModal from '../components/AddCategoryModal'
+import TaskDetailsModal from '../components/TaskDetailsModal'
 import { Plus, FolderPlus } from 'lucide-react'
 
 /** @typedef {import('../types/task').Task} Task */
 /** @typedef {import('../types/task').Category} Category */
 
 export default function HomePage() {
+  const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false)
+  const [isAddCategoryModalOpen, setIsAddCategoryModalOpen] = useState(false)
+  const [selectedTask, setSelectedTask] = useState(null)
 
   const [categories, setCategories] = useState([
     { id: "cat-1", name: "CS", color: "#b7e4ee", priority: 1 },
@@ -193,17 +199,57 @@ export default function HomePage() {
     setFriendRequest(null)
   }
 
+  function handleAddTask(task) {
+    setTasks((currentTasks) => [task, ...currentTasks])
+  }
+
+  function handleAddCategory(category) {
+    setCategories((currentCategories) => [category, ...currentCategories])
+  }
+
+  function handleSelectTask(task) {
+    setSelectedTask(task)
+  }
+
+  function handleCloseTaskModal() {
+    setSelectedTask(null)
+  }
+
+  function handleDeleteTask(taskToDelete) {
+    setTasks((currentTasks) => currentTasks.filter((task) => task.id !== taskToDelete.id))
+    setSelectedTask(null)
+  }
+
+  function handleMarkTaskDone(taskToUpdate) {
+    setTasks((currentTasks) =>
+      currentTasks.map((task) =>
+        task.id === taskToUpdate.id
+          ? { ...task, completed: true }
+          : task
+      )
+    )
+    setSelectedTask((currentTask) => (currentTask ? { ...currentTask, completed: true } : currentTask))
+  }
+
   return (
     <div className="home-page">
       <div className="home-top-bar">
         <Brand/>
         <div className="home-top-bar-buttons">
           <div className="home-pill-placeholder" aria-hidden="true" />
-          <button type="button" className="home-pill-button home-pill-button-1">
+          <button
+            type="button"
+            className="home-pill-button home-pill-button-1"
+            onClick={() => setIsAddTaskModalOpen(true)}
+          >
             <Plus size={18} />
             <span>Add Task</span>
           </button>
-          <button type="button" className="home-pill-button home-pill-button-2">
+          <button
+            type="button"
+            className="home-pill-button home-pill-button-2"
+            onClick={() => setIsAddCategoryModalOpen(true)}
+          >
             <FolderPlus size={18} />
             <span>Add Category</span>
           </button>
@@ -219,7 +265,7 @@ export default function HomePage() {
 
       <div className="home-main-row">
         <div className="home-calendar-section">
-          <CalendarWidget tasks={tasks} categories={categories} />
+          <CalendarWidget tasks={tasks} categories={categories} onTaskClick={handleSelectTask} />
         </div>
         <div className="home-friends-section">
           <FriendsWidget
@@ -233,8 +279,29 @@ export default function HomePage() {
       </div>
 
       <div className="home-upcoming-section">
-        <UpcomingTasksBar tasks={tasks} categories={categories} onTaskClick={()=>{}} />
+        <UpcomingTasksBar tasks={tasks} categories={categories} onTaskClick={handleSelectTask} />
       </div>
+
+      <AddTaskModal
+        open={isAddTaskModalOpen}
+        onClose={() => setIsAddTaskModalOpen(false)}
+        categories={categories}
+        onAddTask={handleAddTask}
+      />
+
+      <AddCategoryModal
+        open={isAddCategoryModalOpen}
+        onClose={() => setIsAddCategoryModalOpen(false)}
+        onAddCategory={handleAddCategory}
+      />
+
+      <TaskDetailsModal
+        open={Boolean(selectedTask)}
+        task={selectedTask}
+        onClose={handleCloseTaskModal}
+        onDelete={handleDeleteTask}
+        onMarkDone={handleMarkTaskDone}
+      />
     </div>
   )
 }

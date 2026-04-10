@@ -12,6 +12,7 @@ export interface Task {
   dueDate: string;
   startTime: string;
   endTime: string;
+  priority?: number;
   recurringDays: string[];
   completed?: boolean;
 }
