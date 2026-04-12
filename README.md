@@ -11,6 +11,13 @@
     * The VITE_GOOGLE_CLIENT_ID and GOOGLE_CLIENT_ID do not go in quotes or anything
     * The JWT_SECRET is in quotes
     * I will post the GOOGLE_CLIENT_ID, JWT_SECRET, and VITE_GOOGLE_CLIENT_ID on slack
+  3. Also add in backend/.env file:
+      SUPABASE_URL=...
+      SUPABASE_KEY=...
+      FRONTEND_URL=...
+      SUPABASE_URL should be https://slxuaqhbykwlftdfuhmn.supabase.co
+      SUPABASE_KEY will be posted on Slack
+      FRONTEND_URL should be http://localhost:5173 if doing local testing
 
 ## How to test and run this:
   1. Make sure you're in team2-S26-CS320 directory

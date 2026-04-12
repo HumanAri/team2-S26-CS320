@@ -7,6 +7,7 @@ from jose import jwt, JWTError
 from datetime import datetime, timedelta, timezone
 import os
 from dotenv import load_dotenv
+from database import supabase
 
 load_dotenv()
 
@@ -67,9 +68,24 @@ def google_login(body: GoogleTokenRequest):
     if not email.endswith("@umass.edu"):
         raise HTTPException(
             status_code=403, detail="Must use a @umass.edu email")
+    
+# Once we figure out our database, the logic for that would go here
+# So look up user by google_id in the DB, if the user is not found, create a new user
 
-    # TODO: Once we figure out our database, the logic for that would go here
-    # So look up user by google_id in the DB, if the user is not found, create a new user
+    google_id = info.get("sub")
+
+    potential_user = supabase.table("users").select("*").eq("google_id", google_id).execute()
+
+    if not potential_user.data:
+        supabase.table("users").insert({
+            "google_id":       info.get("sub"),
+            "email":           email,
+            "email_verified":  info.get("email_verified", False),
+            "display_name":    info.get("name"),
+            "first_name":      info.get("given_name"),
+            "last_name":       info.get("family_name"),
+            "profile_picture": info.get("picture"),
+        }).execute()
 
     token = jwt.encode(
         {
