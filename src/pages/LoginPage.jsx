@@ -22,6 +22,7 @@ export default function LoginPage() {
           body: JSON.stringify({ email, password }),
         })
         const data = await res.json()
+        console.log('login response:', data)
         if (!res.ok) {
           setError(data.detail || 'Invalid credentials')
           return

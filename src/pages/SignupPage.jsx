@@ -31,6 +31,7 @@ export default function SignupPage() {
           return
         }
         localStorage.setItem('token', data.token)
+        localStorage.setItem('semester_id', data.semester_id)
         navigate('/onboarding/1')
       } catch {
         setError('Could not connect to server')
@@ -59,6 +60,7 @@ export default function SignupPage() {
           return
         }
         localStorage.setItem('token', data.token)
+        localStorage.setItem('semester_id', data.semester_id)
         navigate('/onboarding/1')
       } catch {
         setError('Could not connect to server')
