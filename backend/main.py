@@ -162,7 +162,7 @@ def regular_signup(body: SignupRequest):
     supabase.table("users").insert({
         "email": body.email,
         "first_name": name[0],
-        "last_name": name[1],
+        "last_name": name[-1],
         "hashed_pw": hashed_pw.decode("utf-8"),
     }).execute()
 
