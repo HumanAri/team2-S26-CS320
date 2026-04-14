@@ -13,6 +13,7 @@ export default function SignupPage() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError]                   = useState('')
 
+  //SSO signup with a umass.edu email
   const umassSignup = useGoogleLogin({
     flow: 'implicit',
     hint: 'umass.edu',
@@ -38,6 +39,7 @@ export default function SignupPage() {
     onError: () => setError('UMass sign-up failed'),
   })
 
+  //Regular signup
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
@@ -45,19 +47,22 @@ export default function SignupPage() {
       setError('Passwords do not match.')
       return
     }
-    // TODO: Replace with your registration API call
-    //
-    // try {
-    //   const res = await fetch('/api/auth/register', {
-    //     method: 'POST',
-    //     headers: { 'Content-Type': 'application/json' },
-    //     body: JSON.stringify({ name, email, password })
-    //   })
-    //   if (!res.ok) throw new Error('Registration failed. Please try again.')
-    // } catch (err) {
-    //   setError(err.message)
-    //   return
-    // }
+    try {
+        const res = await fetch('http://localhost:8000/api/auth/signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, password }),
+        })
+        const data = await res.json()
+        if (!res.ok) {
+          setError(data.detail || 'Invalid credentials')
+          return
+        }
+        localStorage.setItem('token', data.token)
+        navigate('/onboarding/1')
+      } catch {
+        setError('Could not connect to server')
+      }
     console.log('Signup submitted:', { name, email, password })
     navigate('/onboarding/1')
   }

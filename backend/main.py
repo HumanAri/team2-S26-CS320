@@ -8,6 +8,7 @@ from datetime import datetime, timedelta, timezone
 import os
 from dotenv import load_dotenv
 from database import supabase
+import bcrypt
 
 load_dotenv()
 
@@ -69,16 +70,15 @@ def google_login(body: GoogleTokenRequest):
         raise HTTPException(
             status_code=403, detail="Must use a @umass.edu email")
     
-# Once we figure out our database, the logic for that would go here
-# So look up user by google_id in the DB, if the user is not found, create a new user
 
+    # Look up user by google_id in the DB, if the user is not found, create a new user
     google_id = info.get("sub")
 
-    potential_user = supabase.table("users").select("*").eq("google_id", google_id).execute()
+    existing = supabase.table("users").select("*").eq("google_id", google_id).execute()
 
-    if not potential_user.data:
+    if not existing.data:
         supabase.table("users").insert({
-            "google_id":       info.get("sub"),
+            "google_id":       google_id,
             "email":           email,
             "email_verified":  info.get("email_verified", False),
             "display_name":    info.get("name"),
@@ -132,3 +132,65 @@ def get_me(current_user: dict = Depends(get_current_user)):
         "last_name":       current_user.get("last_name"),
         "profile_picture": current_user.get("profile_picture"),
     }
+
+
+
+#Non-SSO signup and login logic
+
+class SignupRequest(BaseModel):
+    name: str
+    email: str
+    password: str
+
+#Registration
+@app.post("/api/auth/signup")
+def regular_signup(body: SignupRequest):
+    # Limiting registration to only umass students
+    if not body.email.endswith("@umass.edu"):
+        raise HTTPException(
+            status_code=403, detail="Must use a @umass.edu email")
+    
+    existing = supabase.table("users").select("*").eq("email", body.email).execute()
+    # Throw error if already registered with this email
+    if existing.data:
+        raise HTTPException(status_code=409, detail="Already registered with this email")
+    
+    hashed_pw = bcrypt.hashpw(body.password.encode("utf-8"), bcrypt.gensalt())
+
+    name = body.name.split()
+
+    supabase.table("users").insert({
+        "email": body.email,
+        "first_name": name[0],
+        "last_name": name[1],
+        "hashed_pw": hashed_pw.decode("utf-8"),
+    }).execute()
+
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+@app.post("/api/auth/login")
+def regular_login(body: LoginRequest):
+    existing = supabase.table("users").select("*").eq("email", body.email).execute()
+    if not existing.data:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    
+    user = existing.data[0]
+
+    if not bcrypt.checkpw(body.password.encode('utf-8'), user["hashed_pw"].encode("utf-8")):
+        raise HTTPException(status_code=401, detail="Incorrect email/password")
+    
+    token = jwt.encode(
+        {
+            "email":           user["email"],
+            "first_name":      user["first_name"],
+            "last_name":       user["last_name"],
+            "exp": datetime.now(timezone.utc) + timedelta(hours=8),
+        },
+        JWT_SECRET,
+        algorithm="HS256",
+    )
+
+    return {"token": token, "email": user["email"]}
