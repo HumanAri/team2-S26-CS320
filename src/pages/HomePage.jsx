@@ -7,6 +7,8 @@ import CalendarWidget from '../components/CalendarWidget'
 import AddTaskModal from '../components/AddTaskModal'
 import AddCategoryModal from '../components/AddCategoryModal'
 import TaskDetailsModal from '../components/TaskDetailsModal'
+import ProfileModal from '../components/ProfileModal'
+import AddFriendModal from '../components/AddFriendModal'
 import { Plus, FolderPlus } from 'lucide-react'
 
 /** @typedef {import('../types/task').Task} Task */
@@ -15,6 +17,8 @@ import { Plus, FolderPlus } from 'lucide-react'
 export default function HomePage() {
   const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false)
   const [isAddCategoryModalOpen, setIsAddCategoryModalOpen] = useState(false)
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false)
+  const [isAddFriendModalOpen, setIsAddFriendModalOpen] = useState(false)
   const [selectedTask, setSelectedTask] = useState(null)
 
   const [categories, setCategories] = useState([
@@ -255,7 +259,12 @@ export default function HomePage() {
           </button>
         </div>
         <div className="home-top-bar-spacer" />
-        <button type="button" className="home-profile-button" aria-label="Profile">
+        <button
+          type="button"
+          className="home-profile-button"
+          aria-label="Profile"
+          onClick={() => setIsProfileModalOpen(true)}
+        >
           <span className="home-profile-button-circle" aria-hidden="true">🙂</span>
           <span className="home-profile-button-label">Profile</span>
         </button>
@@ -273,7 +282,7 @@ export default function HomePage() {
             friendRequest={friendRequest}
             onAcceptFriendRequest={handleAcceptFriendRequest}
             onRejectFriendRequest={handleRejectFriendRequest}
-            onAddFriendClick={()=>{}}
+            onAddFriendClick={() => setIsAddFriendModalOpen(true)}
           />
         </div>
       </div>
@@ -301,6 +310,16 @@ export default function HomePage() {
         onClose={handleCloseTaskModal}
         onDelete={handleDeleteTask}
         onMarkDone={handleMarkTaskDone}
+      />
+
+      <ProfileModal
+        open={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+      />
+
+      <AddFriendModal
+        open={isAddFriendModalOpen}
+        onClose={() => setIsAddFriendModalOpen(false)}
       />
     </div>
   )
