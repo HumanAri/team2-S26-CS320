@@ -8,6 +8,7 @@ from datetime import datetime, timedelta, timezone
 import os
 from dotenv import load_dotenv
 from database import supabase
+import bcrypt
 
 load_dotenv()
 
@@ -69,16 +70,15 @@ def google_login(body: GoogleTokenRequest):
         raise HTTPException(
             status_code=403, detail="Must use a @umass.edu email")
     
-# Once we figure out our database, the logic for that would go here
-# So look up user by google_id in the DB, if the user is not found, create a new user
 
+    # Look up user by google_id in the DB, if the user is not found, create a new user
     google_id = info.get("sub")
 
-    potential_user = supabase.table("users").select("*").eq("google_id", google_id).execute()
+    existing = supabase.table("users").select("*").eq("google_id", google_id).execute()
 
-    if not potential_user.data:
-        supabase.table("users").insert({
-            "google_id":       info.get("sub"),
+    if not existing.data:
+        new_user = supabase.table("users").insert({
+            "google_id":       google_id,
             "email":           email,
             "email_verified":  info.get("email_verified", False),
             "display_name":    info.get("name"),
@@ -86,6 +86,34 @@ def google_login(body: GoogleTokenRequest):
             "last_name":       info.get("family_name"),
             "profile_picture": info.get("picture"),
         }).execute()
+
+        user_id = new_user.data[0]["id"]
+
+        #Creating a semester
+        now = datetime.now()
+        if now.month <= 6:
+            semester_name = f"Spring {now.year}"
+            semester_start = datetime(now.year, 1, 25)
+            semester_end = datetime(now.year, 5, 31)
+        else:
+            semester_name = f"Fall {now.year}"
+            semester_start = datetime(now.year, 9, 1)
+            semester_end = datetime(now.year, 12, 31)
+
+        semester = supabase.table("semesters").insert({
+            "user_id": user_id,
+            "name": semester_name,
+            "start_date": semester_start.isoformat(),
+            "end_date": semester_end.isoformat(),
+            "created_at": now.isoformat()
+        }).execute()
+
+        semester_id = semester.data[0]["id"]
+
+    else:
+        user_id = existing.data[0]["id"]
+        semester = supabase.table("semesters").select("id").eq("user_id", user_id).execute()
+        semester_id = semester.data[0]["id"]
 
     token = jwt.encode(
         {
@@ -103,6 +131,7 @@ def google_login(body: GoogleTokenRequest):
     )
     return {
         "token":           token,
+        "semester_id":     semester_id,
         "google_id":       info.get("sub"),
         "email":           email,
         "email_verified":  info.get("email_verified", False),
@@ -132,3 +161,208 @@ def get_me(current_user: dict = Depends(get_current_user)):
         "last_name":       current_user.get("last_name"),
         "profile_picture": current_user.get("profile_picture"),
     }
+
+
+
+#Non-SSO signup and login logic
+
+class SignupRequest(BaseModel):
+    name: str
+    email: str
+    password: str
+
+#Registration
+@app.post("/api/auth/signup")
+def regular_signup(body: SignupRequest):
+    # Limiting registration to only umass students
+    if not body.email.endswith("@umass.edu"):
+        raise HTTPException(
+            status_code=403, detail="Must use a @umass.edu email")
+    
+    existing = supabase.table("users").select("*").eq("email", body.email).execute()
+    # Throw error if already registered with this email
+    if existing.data:
+        raise HTTPException(status_code=409, detail="Already registered with this email")
+    
+    hashed_pw = bcrypt.hashpw(body.password.encode("utf-8"), bcrypt.gensalt())
+
+    name = body.name.split()
+
+    new_user = supabase.table("users").insert({
+        "email": body.email,
+        "first_name": name[0],
+        "last_name": name[-1],
+        "hashed_pw": hashed_pw.decode("utf-8"),
+    }).execute()
+
+    user_id = new_user.data[0]["id"]
+
+    #Creating a semester
+    now = datetime.now()
+    if now.month <= 6:
+        semester_name = f"Spring {now.year}"
+        semester_start = datetime(now.year, 1, 25)
+        semester_end = datetime(now.year, 5, 31)
+    else:
+        semester_name = f"Fall {now.year}"
+        semester_start = datetime(now.year, 9, 1)
+        semester_end = datetime(now.year, 12, 31)
+
+    semester = supabase.table("semesters").insert({
+        "user_id": user_id,
+        "name": semester_name,
+        "start_date": semester_start.isoformat(),
+        "end_date": semester_end.isoformat(),
+        "created_at": now.isoformat()
+    }).execute()
+
+    semester_id = semester.data[0]["id"]
+
+    token = jwt.encode(
+        {
+            "email": body.email,
+            "first_name": name[0],
+            "last_name": name[-1],
+            "exp": datetime.now(timezone.utc)+ timedelta(hours=8),
+        },
+        JWT_SECRET,
+        algorithm="HS256",
+    )
+
+    return {"token": token, "user_id": user_id, "semester_id": semester_id}
+
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+@app.post("/api/auth/login")
+def regular_login(body: LoginRequest):
+    existing = supabase.table("users").select("*").eq("email", body.email).execute()
+    if not existing.data:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    
+    user = existing.data[0]
+
+    if not bcrypt.checkpw(body.password.encode('utf-8'), user["hashed_pw"].encode("utf-8")):
+        raise HTTPException(status_code=401, detail="Incorrect email/password")
+    
+    token = jwt.encode(
+        {
+            "email":           user["email"],
+            "first_name":      user["first_name"],
+            "last_name":       user["last_name"],
+            "exp": datetime.now(timezone.utc) + timedelta(hours=8),
+        },
+        JWT_SECRET,
+        algorithm="HS256",
+    )
+
+    return {"token": token, "email": user["email"]}
+
+
+
+#ONBOARDING logic: (Step1-5)
+
+#step 1: emoji profile picture
+class PFPRequest(BaseModel):
+    pfp: str
+
+@app.patch("/api/users/pfp")
+def set_pfp(body: PFPRequest, current_user: dict = Depends(get_current_user)):
+    email = current_user.get("email")
+
+    existing = supabase.table("users").update({
+        "profile_picture": body.pfp,
+    }).eq("email", email).execute()
+
+    if not existing.data:
+        raise HTTPException(status_code=404, detail="User does not exist")
+    
+#steps 2 and 3: creating categories
+class Category(BaseModel):
+    name: str
+    color: str
+    priority: int = 1
+
+class Categories(BaseModel):
+    categories:list[Category]
+    semester_id: str
+
+@app.post("/api/categories")
+def make_categories(body: Categories, current_user: dict = Depends(get_current_user)):
+    email = current_user.get("email")
+
+    user = supabase.table("users").select("id").eq("email", email).execute()
+    if not user.data:
+        raise HTTPException(status_code=404, detail="User does not exist")
+    
+    user_id = user.data[0]["id"]
+
+    rows = []
+    for category in body.categories:
+        rows.append({"user_id": user_id, "semester_id": body.semester_id, "name": category.name, "color": category.color, "priority": category.priority})
+
+    supabase.table("categories").insert(rows).execute()
+
+#step 4: send friend requests
+class FriendRequestRequest(BaseModel):
+    friends: list[str]
+
+@app.post("/api/friends/requests")
+def make_friends(body: FriendRequestRequest, current_user: dict = Depends(get_current_user)):
+    email = current_user.get("email")
+
+    user1 = supabase.table("users").select("id").eq("email", email).execute()
+    if not user1.data:
+        raise HTTPException(status_code=404, detail="User does not exist")
+    
+    user1_id = user1.data[0]["id"]
+
+    requests = {"sent": [], "not_found": []}
+
+    for friend in body.friends:
+        user2 = supabase.table("users").select("id").eq("email", friend).execute()
+
+        if not user2.data:
+            user2 = supabase.table("users").select("id").eq("display_name", friend).execute()
+        
+        if not user2.data:
+            requests["not_found"].append(friend)
+            continue
+
+        user2_id = user2.data[0]["id"]
+
+        #0 for pending, 1 for accepted, 2 for rejected
+        supabase.table("friendships").insert({
+            "user1_id": user1_id,
+            "user2_id": user2_id,
+            "status": 0,
+        }).execute()
+
+        requests["sent"].append(friend)
+
+    #To see which requests were successfully sent vs which couldn't send
+    return requests
+
+
+#step 5: setting privacy settings
+class PrivacyRequest(BaseModel):
+    share_goals: bool
+    share_results: bool
+    share_other: bool
+    share_all: bool
+
+@app.patch("/api/users/privacy")
+def set_privacy(body: PrivacyRequest, current_user: dict = Depends(get_current_user)):
+    email = current_user.get("email")
+
+    existing = supabase.table("users").update({
+        "share_goals": body.share_goals,
+        "share_results": body.share_results,
+        "share_other": body.share_other,
+        "share_all": body.share_all,
+    }).eq("email", email).execute()
+
+    if not existing.data:
+        raise HTTPException(status_code=404, detail="User does not exist")

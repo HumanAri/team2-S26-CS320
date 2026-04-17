@@ -26,8 +26,52 @@ export default function Step5Privacy() {
     }
   }
 
-  const handleDone = () => {
+  const handleDone = async () => {
+    //Changed handleDone to update the DB with the new semester, categories, friendships, etc.
     update('privacy', privacy)
+
+    const token = localStorage.getItem('token')
+    const semester_id = localStorage.getItem('semester_id')
+    const headers = {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`
+    }
+
+    const priorities = data.priority.map((name, idx) => {
+      const category = data.categories.find(c => c.name === name)
+      return {name: category.name, color: category.color, priority: idx + 1}
+    })
+
+    const promise_array = [
+      fetch('http://localhost:8000/api/users/pfp', {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ pfp: data.emoji })
+      }),
+      fetch('http://localhost:8000/api/categories', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ categories: priorities, semester_id })
+      }),
+      fetch('http://localhost:8000/api/users/privacy', {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify(privacy)
+      }),
+    ]
+
+    //IF the user wants to add friends immediately:
+    if (data.friends && data.friends.length > 0){
+      promise_array.push(
+        fetch('http://localhost:8000/api/users/privacy', {
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify({ friends: data.friends })
+        }),
+      )
+    }
+
+    await Promise.all(promise_array)
     navigate('/home')
   }
 
