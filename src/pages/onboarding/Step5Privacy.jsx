@@ -62,13 +62,13 @@ export default function Step5Privacy() {
 
     //IF the user wants to add friends immediately:
     if (data.friends && data.friends.length > 0){
-      promise_array.push(
-        fetch('http://localhost:8000/api/users/privacy', {
-          method: 'PATCH',
-          headers,
-          body: JSON.stringify({ friends: data.friends })
-        }),
-      )
+        promise_array.push(
+            fetch('http://localhost:8000/api/friends/requests', {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({ friends: data.friends.map(f => f.email) })
+            }),
+        )
     }
 
     await Promise.all(promise_array)
