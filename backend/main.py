@@ -113,8 +113,28 @@ def google_login(body: GoogleTokenRequest):
     else:
         user_id = existing.data[0]["id"]
         semester = supabase.table("semesters").select("id").eq("user_id", user_id).execute()
-        semester_id = semester.data[0]["id"]
 
+        # if the user somehow has no semester, create one
+        if not semester.data:
+            now = datetime.now()
+            if now.month <= 6:
+                semester_name = f"Spring {now.year}"
+                semester_start = datetime(now.year, 1, 25)
+                semester_end = datetime(now.year, 5, 31)
+            else:
+                semester_name = f"Fall {now.year}"
+                semester_start = datetime(now.year, 9, 1)
+                semester_end = datetime(now.year, 12, 31)
+
+            semester = supabase.table("semesters").insert({
+                "user_id": user_id,
+                "name": semester_name,
+                "start_date": semester_start.isoformat(),
+                "end_date": semester_end.isoformat(),
+                "created_at": now.isoformat()
+            }).execute()
+
+    semester_id = semester.data[0]["id"]
     token = jwt.encode(
         {
             "google_id":       info.get("sub"),
