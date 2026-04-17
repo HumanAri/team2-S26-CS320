@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useGoogleLogin } from '@react-oauth/google'
 import Brand from '../components/Brand'
 import ThemeToggle from '../components/ThemeToggle'
 import HippoButton from '../components/HippoButton'
@@ -28,6 +29,31 @@ export default function LoginPage() {
     // }
     console.log('Login submitted:', { email, password })
   }
+
+  const umassLogin = useGoogleLogin({
+    flow: 'implicit',
+    hint: 'umass.edu',
+    onSuccess: async (tokenResponse) => {
+      setError('')
+      try {
+        const res = await fetch('http://localhost:8000/api/auth/google', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: tokenResponse.access_token }),
+        })
+        const data = await res.json()
+        if (!res.ok) {
+          setError(data.detail || 'Login failed')
+          return
+        }
+        localStorage.setItem('token', data.token)
+        navigate('/dashboard')
+      } catch {
+        setError('Could not connect to server')
+      }
+    },
+    onError: () => setError('UMass sign-in failed'),
+  })
 
   return (
     <>
@@ -72,6 +98,10 @@ export default function LoginPage() {
           {error && <p className="error-msg visible" role="alert">{error}</p>}
           <HippoButton label="LOG IN" id="login" />
         </form>
+        <div className="divider"><span>or</span></div>
+        <button className="umass-btn" onClick={() => umassLogin()}>
+          Sign In with UMass Email
+        </button>
         <p className="alt-link">Not a member? <span onClick={() => navigate('/signup')}>Sign up now</span></p>
       </div>
     </>

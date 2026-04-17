@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import Brand from '../components/Brand'
-import ThemeToggle from '../components/ThemeToggle'
 import FriendsWidget from '../components/FriendsWidget'
 import UpcomingTasksBar from '../components/UpcomingTasksBar'
 import CalendarWidget from '../components/CalendarWidget'
@@ -268,8 +267,6 @@ export default function HomePage() {
           <span className="home-profile-button-circle" aria-hidden="true">🙂</span>
           <span className="home-profile-button-label">Profile</span>
         </button>
-        <div className="home-top-bar-toggle-buffer" aria-hidden="true" />
-        <ThemeToggle/>
       </div>
 
       <div className="home-main-row">

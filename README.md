@@ -1,15 +1,34 @@
 # team2-S26-CS320
-Repository for Team #2 Spring 26 CS 320, or is it?
-Repository for Team #2 Spring 26 CS 320, maybe?
-Repository for Team #2 Spring 26 CS 320, are we sure?
-Repository for Team #2 Spring 26 CS 320, I believe so.
-Repository for Team #2 Spring 26 CS 320, in that case, what do we do?
-Repository for Team #2 Spring 26 CS 320, we design.
-Repository for Team #2 Spring 26 CS 320, then we discuss?
-Repository for Team #2 Spring 26 CS 320, yes, and then...
-Repository for Team #2 Spring 26 CS 320, we code and present!
-Extra line here
 
-Yet another conflict!
+## Setup
+  1. Create a .env file in the root folder(TEAM2-S36-CS320) with:
+      VITE_GOOGLE_CLIENT_ID=...
+  2. create a backend/.env file with:
+      GOOGLE_CLIENT_ID=...
+      JWT_SECRET="..."
+      ALLOWED_ORIGINS="http://localhost:5173"
+  * Notes:
+    * The VITE_GOOGLE_CLIENT_ID and GOOGLE_CLIENT_ID do not go in quotes or anything
+    * The JWT_SECRET is in quotes
+    * I will post the GOOGLE_CLIENT_ID, JWT_SECRET, and VITE_GOOGLE_CLIENT_ID on slack
+  3. Also add in backend/.env file:
+      SUPABASE_URL=...
+      SUPABASE_KEY=...
+      FRONTEND_URL=...
+      SUPABASE_URL should be https://slxuaqhbykwlftdfuhmn.supabase.co
+      SUPABASE_KEY will be posted on Slack
+      FRONTEND_URL should be http://localhost:5173 if doing local testing
 
-Website URL: https://habitaskcs320.netlify.app/
+## How to test and run this:
+  1. Make sure you're in team2-S26-CS320 directory
+  2. Create the venv virtual environment, inside terminal:
+    * cd backend
+    * python3 -m venv venv
+    * source venv/bin/activate
+    * pip install -r requirements.txt (If this doesn't work, try pip3 install -r requirements.txt)
+  3. Open a separate terminal in the root directory:
+    * npm install
+    * npm run dev
+  4. In your backend terminal, run:
+    * uvicorn main:app --reload
+  5. Open a browser and go to: http://localhost:5173

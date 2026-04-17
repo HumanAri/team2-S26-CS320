@@ -1,4 +1,8 @@
 node_modules
 dist
 .DS_Store
+.env
+backend/.env
+backend/venv
+backend/__pycache__
 .codex

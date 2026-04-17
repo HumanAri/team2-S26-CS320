@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+requests
+python-jose[cryptography]
+python-dotenv
+supabase
