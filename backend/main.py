@@ -163,6 +163,18 @@ def get_me(current_user: dict = Depends(get_current_user)):
     }
 
 
+# Search for a user by email (used by friend search)
+@app.get("/api/users/search")
+def search_user(email: str, current_user: dict = Depends(get_current_user)):
+    result = supabase.table("users").select(
+        "id, display_name, email, profile_picture"
+    ).eq("email", email).execute()
+
+    if not result.data:
+        raise HTTPException(status_code=404, detail="No user found with that email")
+
+    return result.data[0]
+
 
 #Non-SSO signup and login logic
 
