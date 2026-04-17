@@ -1463,6 +1463,54 @@ input:focus { border-color: var(--input-focus); }
   line-height: 1.35;
 }
 
+.add-friend-modal-found {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  grid-column: 1 / -1;
+}
+
+.add-friend-modal-found-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.add-friend-modal-found-avatar {
+  font-size: 1.5rem;
+}
+
+.add-friend-modal-send-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.1rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--button-color-1);
+  color: var(--text-primary);
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: transform 120ms ease;
+}
+
+.add-friend-modal-send-button:hover {
+  transform: translateY(-1px);
+}
+
+.add-friend-modal-sent {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--input-focus);
+  font-size: 0.9rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
 .add-friend-modal-close:hover,
 .add-friend-modal-search-button:hover {
   transform: translateY(-1px);
