@@ -1,9 +1,14 @@
 import { useEffect, useState } from 'react'
-import { Mail, Search, UserPlus, X } from 'lucide-react'
+import { Check, Mail, Search, UserPlus, X } from 'lucide-react'
 
 export default function AddFriendModal({ open = false, onClose }) {
   const [email, setEmail] = useState('')
+  const [result, setResult] = useState(null)    // stores the found user after searching
+  const [error, setError] = useState('')         // stores error message if search fails
+  const [loading, setLoading] = useState(false)  // true while waiting for search results
+  const [sent, setSent] = useState(false)        // true after friend request is sent
 
+  // close the modal when the user presses Escape
   useEffect(() => {
     if (!open) return undefined
 
@@ -15,6 +20,7 @@ export default function AddFriendModal({ open = false, onClose }) {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [onClose, open])
 
+  // prevent the page behind the modal from scrolling
   useEffect(() => {
     if (!open) return undefined
 
@@ -25,11 +31,76 @@ export default function AddFriendModal({ open = false, onClose }) {
     }
   }, [open])
 
+  // reset everything when the modal is closed
   function handleClose() {
     setEmail('')
+    setResult(null)
+    setError('')
+    setSent(false)
     onClose?.()
   }
 
+  // look up a user by email in the backend
+  async function handleSearch() {
+    if (!email.trim()) return
+
+    setLoading(true)
+    setResult(null)
+    setError('')
+    setSent(false)
+
+    try {
+      const token = localStorage.getItem('token')
+      const res = await fetch(
+        `http://localhost:8000/api/users/search?email=${encodeURIComponent(email.trim())}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+
+      // no user found with that email
+      if (res.status === 404) {
+        setError('No user found with that email')
+        return
+      }
+
+      if (!res.ok) {
+        setError('Something went wrong, try again')
+        return
+      }
+
+      // save the found user so we can display them
+      const data = await res.json()
+      setResult(data)
+    } catch {
+      setError('Could not reach server')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // send a friend request to the user we found
+  async function handleSendRequest() {
+    try {
+      const token = localStorage.getItem('token')
+      const res = await fetch('http://localhost:8000/api/friends/requests', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ friends: [result.email] }),
+      })
+
+      if (res.ok) {
+        setSent(true)
+      } else {
+        setError('Failed to send friend request')
+      }
+    } catch {
+      setError('Could not reach server')
+    }
+  }
+
+  // don't render anything if the modal isn't open
   if (!open) return null
 
   return (
@@ -45,6 +116,7 @@ export default function AddFriendModal({ open = false, onClose }) {
         aria-labelledby="add-friend-modal-title"
         onClick={(event) => event.stopPropagation()}
       >
+        {/* modal header with title and close button */}
         <div className="add-friend-modal-header">
           <div>
             <p className="add-friend-modal-kicker">Friends</p>
@@ -61,6 +133,7 @@ export default function AddFriendModal({ open = false, onClose }) {
           </button>
         </div>
 
+        {/* email input and search button */}
         <div className="add-friend-modal-search">
           <label className="add-friend-modal-field">
             <span className="add-friend-modal-label">Friend Email</span>
@@ -70,25 +143,80 @@ export default function AddFriendModal({ open = false, onClose }) {
                 type="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
-                placeholder="friend@example.com"
+                onKeyDown={(event) => { if (event.key === 'Enter') handleSearch() }}
+                placeholder="friend@umass.edu"
                 className="add-friend-modal-input"
               />
             </div>
           </label>
-          <button type="button" className="add-friend-modal-search-button">
+          <button
+            type="button"
+            className="add-friend-modal-search-button"
+            onClick={handleSearch}
+            disabled={loading}
+          >
             <Search size={16} aria-hidden="true" />
-            <span>Search</span>
+            <span>{loading ? 'Searching...' : 'Search'}</span>
           </button>
         </div>
 
         <div className="add-friend-modal-results" aria-live="polite">
-          <div className="add-friend-modal-empty-icon" aria-hidden="true">
-            <UserPlus size={22} />
-          </div>
-          <div>
-            <p className="add-friend-modal-results-title">Search results will appear here.</p>
-            <p className="add-friend-modal-results-copy">Enter an email above when friend search is connected.</p>
-          </div>
+          {/* Default state */}
+          {!result && !error && (
+            <>
+              <div className="add-friend-modal-empty-icon" aria-hidden="true">
+                <UserPlus size={22} />
+              </div>
+              <div>
+                <p className="add-friend-modal-results-title">Search results will appear here.</p>
+                <p className="add-friend-modal-results-copy">Enter an email above to find a friend.</p>
+              </div>
+            </>
+          )}
+
+          {/* User not found or error */}
+          {error && (
+            <>
+              <div className="add-friend-modal-empty-icon" aria-hidden="true">
+                <X size={22} />
+              </div>
+              <div>
+                <p className="add-friend-modal-results-title">{error}</p>
+                <p className="add-friend-modal-results-copy">Check the email and try again.</p>
+              </div>
+            </>
+          )}
+
+          {/* User found */}
+          {result && !error && (
+            <div className="add-friend-modal-found">
+              <div className="add-friend-modal-found-info">
+                {result.profile_picture && (
+                  <span className="add-friend-modal-found-avatar">{result.profile_picture}</span>
+                )}
+                <div>
+                  <p className="add-friend-modal-results-title">
+                    {result.display_name || result.email}
+                  </p>
+                  <p className="add-friend-modal-results-copy">{result.email}</p>
+                </div>
+              </div>
+              {sent ? (
+                <span className="add-friend-modal-sent">
+                  <Check size={16} /> Request sent!
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  className="add-friend-modal-send-button"
+                  onClick={handleSendRequest}
+                >
+                  <UserPlus size={16} />
+                  <span>Send Request</span>
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </section>
     </div>
