@@ -108,7 +108,7 @@ function getCategoryMap(categories) {
   return new Map(categories.map((category) => [category.name, category]))
 }
 
-export default function CalendarWidget({ tasks = [], categories = [] }) {
+export default function CalendarWidget({ tasks = [], categories = [], onTaskClick }) {
   const scrollContainerRef = useRef(null)
   const [weekOffset, setWeekOffset] = useState(0)
   const today = useMemo(() => {
@@ -267,8 +267,9 @@ export default function CalendarWidget({ tasks = [], categories = [] }) {
                         const height = Math.max((task.durationMinutes / 60) * SLOT_HEIGHT - 6, 48)
 
                         return (
-                          <article
+                          <button
                             key={task.id}
+                            type="button"
                             className={`calendar-widget-task${task.completed ? ' is-complete' : ''}`}
                             style={{
                               top: `${top}px`,
@@ -276,6 +277,7 @@ export default function CalendarWidget({ tasks = [], categories = [] }) {
                               borderColor: accentColor,
                               backgroundColor: `color-mix(in srgb, ${accentColor} 18%, var(--card-bg) 82%)`,
                             }}
+                            onClick={() => onTaskClick?.(task)}
                           >
                             <div
                               className="calendar-widget-task-accent"
@@ -296,7 +298,7 @@ export default function CalendarWidget({ tasks = [], categories = [] }) {
                                 </span>
                               </div>
                             </div>
-                          </article>
+                          </button>
                         )
                       })}
 

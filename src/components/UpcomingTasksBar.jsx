@@ -34,6 +34,7 @@ export default function UpcomingTasksBar({ tasks = [], categories = [], onTaskCl
           const category = categories.find((item) => item.name === task.category);
           const borderColor = category?.color || '#cfd5de';
           const backgroundColor = lightenHexColor(borderColor);
+          const priority = task.priority ?? category?.priority ?? 'N/A';
 
           return (
             <button
@@ -56,8 +57,8 @@ export default function UpcomingTasksBar({ tasks = [], categories = [], onTaskCl
                   </div>
                 </div>
 
-                <span className="upcoming-task-priority-badge" aria-label={`Priority ${category?.priority ?? 'N/A'}`}>
-                  {category?.priority ?? 'N/A'}
+                <span className="upcoming-task-priority-badge" aria-label={`Priority ${priority}`}>
+                  {priority}
                 </span>
               </div>
 
