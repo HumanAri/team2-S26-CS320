@@ -37,3 +37,5 @@
 There is a user "d@umass.edu" in the database that you can search for and it will come up. 
 Search for an email that's not in the database and it will let you know it doesn't exist.
 (Either in the onboarding process or on the homepage)
+
+After successfully sending a friend request, in the database under the friends table there should be an entry with "status = 0" meaning 'pending'
