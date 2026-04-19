@@ -34,6 +34,13 @@
   5. Open a browser and go to: http://localhost:5173
 
 
+Testing user: 
+
+email: d@umass.edu
+
+password: d
+
+
 There is a user "d@umass.edu" in the database that you can search for and it will come up. 
 Search for an email that's not in the database and it will let you know it doesn't exist.
 (Either in the onboarding process or on the homepage)
