@@ -46,3 +46,15 @@ Search for an email that's not in the database and it will let you know it doesn
 (Either in the onboarding process or on the homepage)
 
 After successfully sending a friend request, in the database under the friends table there should be an entry with "status = 0" meaning 'pending'
+
+
+
+TO TEST SELF-REQUEST BLOCK:
+
+1. Log in and go to the homepage
+
+2. Click the "+" button on the Friends widget to open the Add Friend modal
+
+3. Type in your own email and click Search
+
+4. You should see an error message saying "You can't add yourself as a friend" instead of a search result
