@@ -56,6 +56,13 @@ export default function AddFriendModal({ open = false, onClose }) {
         { headers: { Authorization: `Bearer ${token}` } }
       )
 
+      // can't add yourself as a friend
+      if (res.status === 400) {
+        setError("You can't add yourself as a friend")
+        return
+      }
+      
+
       // no user found with that email
       if (res.status === 404) {
         setError('No user found with that email')

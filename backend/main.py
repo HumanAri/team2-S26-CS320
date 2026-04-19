@@ -116,6 +116,8 @@ def google_login(body: GoogleTokenRequest):
             "id").eq("user_id", user_id).execute()
         semester_id = semester.data[0]["id"]
 
+        
+
     token = jwt.encode(
         {
             "google_id":       info.get("sub"),
@@ -167,6 +169,9 @@ def get_me(current_user: dict = Depends(get_current_user)):
 # Search for a user by email (used by friend search)
 @app.get("/api/users/search")
 def search_user(email: str, current_user: dict = Depends(get_current_user)):
+    if email == current_user.get("email"):
+        raise HTTPException(status_code=400, detail="You can't add yourself as a friend")
+
     result = supabase.table("users").select(
         "id, display_name, email, profile_picture"
     ).eq("email", email).execute()
