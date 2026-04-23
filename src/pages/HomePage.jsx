@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Brand from '../components/Brand'
 import FriendsWidget from '../components/FriendsWidget'
 import UpcomingTasksBar from '../components/UpcomingTasksBar'
@@ -19,6 +19,13 @@ export default function HomePage() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false)
   const [isAddFriendModalOpen, setIsAddFriendModalOpen] = useState(false)
   const [selectedTask, setSelectedTask] = useState(null)
+  const [profile, setProfile] = useState({
+    email: '',
+    display_name: '',
+    first_name: '',
+    last_name: '',
+    profile_picture: '🙂',
+  })
 
   const [categories, setCategories] = useState([
     { id: "cat-1", name: "CS", color: "#b7e4ee", priority: 1 },
@@ -218,6 +225,42 @@ export default function HomePage() {
     setSelectedTask(null)
   }
 
+  useEffect(() => {
+    const token = localStorage.getItem('token')
+    if (!token) return
+
+    let isActive = true
+
+    async function loadProfile() {
+      try {
+        const response = await fetch('http://localhost:8000/api/auth/me', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+
+        if (!response.ok) return
+
+        const user = await response.json()
+        if (isActive) {
+          setProfile((currentProfile) => ({
+            ...currentProfile,
+            ...user,
+            profile_picture: user.profile_picture || currentProfile.profile_picture,
+          }))
+        }
+      } catch {
+        // Keep the default avatar if the profile request fails.
+      }
+    }
+
+    loadProfile()
+
+    return () => {
+      isActive = false
+    }
+  }, [])
+
   function handleDeleteTask(taskToDelete) {
     setTasks((currentTasks) => currentTasks.filter((task) => task.id !== taskToDelete.id))
     setSelectedTask(null)
@@ -264,7 +307,7 @@ export default function HomePage() {
           aria-label="Profile"
           onClick={() => setIsProfileModalOpen(true)}
         >
-          <span className="home-profile-button-circle" aria-hidden="true">🙂</span>
+          <span className="home-profile-button-circle" aria-hidden="true">{profile.profile_picture}</span>
           <span className="home-profile-button-label">Profile</span>
         </button>
       </div>
@@ -312,6 +355,7 @@ export default function HomePage() {
       <ProfileModal
         open={isProfileModalOpen}
         onClose={() => setIsProfileModalOpen(false)}
+        profile={profile}
       />
 
       <AddFriendModal

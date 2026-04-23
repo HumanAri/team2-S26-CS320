@@ -155,15 +155,24 @@ def verify_token(current_user: dict = Depends(get_current_user)):
 # Used for letting frontend use the logged in users info without making another call to google
 @app.get("/api/auth/me")
 def get_me(current_user: dict = Depends(get_current_user)):
-    return {
-        "google_id":       current_user.get("google_id"),
-        "email":           current_user.get("email"),
-        "email_verified":  current_user.get("email_verified"),
-        "display_name":    current_user.get("display_name"),
-        "first_name":      current_user.get("first_name"),
-        "last_name":       current_user.get("last_name"),
-        "profile_picture": current_user.get("profile_picture"),
-    }
+    email = current_user.get("email")
+    google_id = current_user.get("google_id")
+
+    query = supabase.table("users").select(
+        "google_id, email, email_verified, display_name, first_name, last_name, profile_picture"
+    )
+
+    if email:
+        user = query.eq("email", email).execute()
+    elif google_id:
+        user = query.eq("google_id", google_id).execute()
+    else:
+        raise HTTPException(status_code=404, detail="User does not exist")
+
+    if not user.data:
+        raise HTTPException(status_code=404, detail="User does not exist")
+
+    return user.data[0]
 
 
 # Search for a user by email (used by friend search)
