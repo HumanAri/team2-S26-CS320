@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { LogOut, Mail, Settings, User, X } from 'lucide-react'
 
-export default function ProfileModal({ open = false, onClose }) {
+export default function ProfileModal({ open = false, onClose, profile }) {
   useEffect(() => {
     if (!open) return undefined
 
@@ -24,6 +24,11 @@ export default function ProfileModal({ open = false, onClose }) {
   }, [open])
 
   if (!open) return null
+
+  const fullName = [profile?.first_name, profile?.last_name].filter(Boolean).join(' ')
+  const displayName = profile?.display_name || fullName || profile?.email || 'Profile'
+  const email = profile?.email || 'No email available'
+  const avatar = profile?.profile_picture || '🙂'
 
   return (
     <div
@@ -54,12 +59,12 @@ export default function ProfileModal({ open = false, onClose }) {
         </div>
 
         <div className="profile-modal-user-card">
-          <div className="profile-modal-avatar" aria-hidden="true">🙂</div>
+          <div className="profile-modal-avatar" aria-hidden="true">{avatar}</div>
           <div className="profile-modal-user-copy">
-            <p className="profile-modal-name">Alex Student</p>
+            <p className="profile-modal-name">{displayName}</p>
             <div className="profile-modal-email">
               <Mail size={15} aria-hidden="true" />
-              <span>alex.student@example.com</span>
+              <span>{email}</span>
             </div>
           </div>
         </div>
