@@ -1,7 +1,5 @@
 # team2-S26-CS320
 
-Backend-specific documentation lives in [backend/README.md](/Users/jaredc./320/team2-S26-CS320/backend/README.md).
-
 ## Setup
   1. Create a .env file in the root folder(TEAM2-S36-CS320) with:
       VITE_GOOGLE_CLIENT_ID=...
