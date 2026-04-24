@@ -208,19 +208,37 @@ export default function AddFriendModal({ open = false, onClose }) {
                   <p className="add-friend-modal-results-copy">{result.email}</p>
                 </div>
               </div>
-              {sent ? (
+              
+              {/* already friends */}
+              {result.friendship_status === 1 && (
                 <span className="add-friend-modal-sent">
-                  <Check size={16} /> Request sent!
+                  <Check size={16} /> Already friends
                 </span>
-              ) : (
-                <button
-                  type="button"
-                  className="add-friend-modal-send-button"
-                  onClick={handleSendRequest}
-                >
-                  <UserPlus size={16} />
-                  <span>Send Request</span>
-                </button>
+              )}
+
+              {/* request already pending */}
+              {result.friendship_status === 0 && (
+                <span className="add-friend-modal-sent">
+                  <Check size={16} /> Request pending
+                </span>
+              )}
+
+              {/* no existing relationship — show send button or sent confirmation */}
+              {(result.friendship_status === null || result.friendship_status === undefined) && (
+                sent ? (
+                  <span className="add-friend-modal-sent">
+                    <Check size={16} /> Request sent!
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    className="add-friend-modal-send-button"
+                    onClick={handleSendRequest}
+                  >
+                    <UserPlus size={16} />
+                    <span>Send Request</span>
+                  </button>
+                )
               )}
             </div>
           )}
