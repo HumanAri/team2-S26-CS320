@@ -189,7 +189,30 @@ def search_user(email: str, current_user: dict = Depends(get_current_user)):
         raise HTTPException(
             status_code=404, detail="No user found with that email")
 
-    return result.data[0]
+    found_user = result.data[0]
+
+    # check if already friends or pending friend request exists
+    current_email = current_user.get("email")
+    me = supabase.table("users").select("id").eq("email", current_email).execute()
+
+    if me.data:
+        my_id = me.data[0]["id"]
+        their_id = found_user["id"]
+
+        # check both directions (i sent them a request, or they sent me one)
+        sent = supabase.table("friendships").select("status").eq(
+            "user1_id", my_id).eq("user2_id", their_id).execute()
+        received = supabase.table("friendships").select("status").eq(
+            "user1_id", their_id).eq("user2_id", my_id).execute()
+
+        if sent.data:
+            found_user["friendship_status"] = sent.data[0]["status"]
+        elif received.data:
+            found_user["friendship_status"] = received.data[0]["status"]
+        else:
+            found_user["friendship_status"] = None
+
+    return found_user
 
 
 # Non-SSO signup and login logic
