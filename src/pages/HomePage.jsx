@@ -213,8 +213,23 @@ export default function HomePage() {
     setTasks((currentTasks) => [task, ...currentTasks])
   }
 
-  function handleAddCategory(category) {
-    setCategories((currentCategories) => [category, ...currentCategories])
+  async function handleAddCategory(category) {
+    const token = localStorage.getItem('token');
+    const semesterId = localStorage.getItem('semester_id')
+
+    await fetch('http://localhost:8000/api/categories', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        categories: [{name: category.name, color: category.color, priority: category.priority}],
+        semester_id: semesterId
+      })
+    });
+
+    setCategories(currentCategories => [category, ...currentCategories]);
   }
 
   function handleSelectTask(task) {

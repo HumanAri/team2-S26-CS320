@@ -123,8 +123,6 @@ def google_login(body: GoogleTokenRequest):
             "id").eq("user_id", user_id).execute()
         semester_id = semester.data[0]["id"]
 
-        
-
     token = jwt.encode(
         {
             "google_id":       info.get("sub"),
@@ -186,7 +184,8 @@ def get_me(current_user: dict = Depends(get_current_user)):
 @app.get("/api/users/search")
 def search_user(email: str, current_user: dict = Depends(get_current_user)):
     if email == current_user.get("email"):
-        raise HTTPException(status_code=400, detail="You can't add yourself as a friend")
+        raise HTTPException(
+            status_code=400, detail="You can't add yourself as a friend")
 
     result = supabase.table("users").select(
         "id, display_name, email, profile_picture"
@@ -200,7 +199,8 @@ def search_user(email: str, current_user: dict = Depends(get_current_user)):
 
     # check if already friends or pending friend request exists
     current_email = current_user.get("email")
-    me = supabase.table("users").select("id").eq("email", current_email).execute()
+    me = supabase.table("users").select("id").eq(
+        "email", current_email).execute()
 
     if me.data:
         my_id = me.data[0]["id"]
@@ -322,7 +322,14 @@ def regular_login(body: LoginRequest):
         algorithm="HS256",
     )
 
-    return {"token": token, "email": user["email"]}
+    semester = supabase.table('semesters').select(
+        'id').eq('user_id', user['id']).execute()
+    if semester.data:
+        semester_id = semester.data[0]['id']
+    else:
+        semester_id = None
+
+    return {"token": token, "email": user["email"], 'semester_id': semester_id}
 
 
 # ONBOARDING logic: (Step1-5)
@@ -346,7 +353,6 @@ def set_pfp(body: PFPRequest, current_user: dict = Depends(get_current_user)):
 # steps 2 and 3: creating categories
 
 
-
 @app.post("/api/categories")
 def make_categories(body: Categories, current_user: dict = Depends(get_current_user)):
     email = current_user.get("email")
@@ -362,7 +368,8 @@ def make_categories(body: Categories, current_user: dict = Depends(get_current_u
         rows.append({"user_id": user_id, "semester_id": body.semester_id,
                     "name": category.name, "color": category.color, "priority": category.priority})
 
-    supabase.table("categories").insert(rows).execute()
+    result = supabase.table("categories").insert(rows).execute()
+    return {'created': result.data}
 
 # step 4: send friend requests
 
@@ -442,11 +449,13 @@ def set_privacy(body: PrivacyRequest, current_user: dict = Depends(get_current_u
 
 # Logic for populating homepage from existing user data
 
+
 class HomepageDataRequest(BaseModel):
     categories: dict[str, Category]
     tasks: dict[str, Task]
     myFriends: list[FriendStub]
     incomingFriendRequests: list[FriendStub]
+
 
 @app.get("/api/homepage", response_model=HomepageDataRequest)
 def get_homepage_data(current_user: dict = Depends(get_current_user)):
@@ -471,7 +480,7 @@ def get_homepage_data(current_user: dict = Depends(get_current_user)):
         .eq("user_id", user_id)
         .execute()
     ).data
-    
+
     # to do: package recurring days with tasks and send with get req
     raw_recurring_days = (
         supabase.table("recurrence_days")
@@ -488,8 +497,6 @@ def get_homepage_data(current_user: dict = Depends(get_current_user)):
         else:
             recurring_days[day["task_id"]] = [day["day_of_week"]]
 
-
-
     raw_friendships = (
         supabase.table("friendships")
         .select("*")
@@ -498,12 +505,16 @@ def get_homepage_data(current_user: dict = Depends(get_current_user)):
     ).data
 
     # converting the raw friendship table rows in to a list of user ids
-    
-    my_accepted_friendships = [fs for fs in raw_friendships if fs["status"] == 1]
-    my_friend_ids = [fs["user2_id"] if (fs["user1_id"] == user_id) else fs["user1_id"] for fs in my_accepted_friendships]
 
-    my_pending_friendships = [fs for fs in raw_friendships if fs["status"] == 0]
-    my_friend_req_ids = [fs["user2_id"] if (fs["user1_id"] == user_id) else fs["user1_id"] for fs in my_pending_friendships]
+    my_accepted_friendships = [
+        fs for fs in raw_friendships if fs["status"] == 1]
+    my_friend_ids = [fs["user2_id"] if (
+        fs["user1_id"] == user_id) else fs["user1_id"] for fs in my_accepted_friendships]
+
+    my_pending_friendships = [
+        fs for fs in raw_friendships if fs["status"] == 0]
+    my_friend_req_ids = [fs["user2_id"] if (
+        fs["user1_id"] == user_id) else fs["user1_id"] for fs in my_pending_friendships]
 
     my_friends = (
         supabase.table("users")
@@ -523,10 +534,10 @@ def get_homepage_data(current_user: dict = Depends(get_current_user)):
 
     categories = {
         str(cat["id"]): Category(
-            name=cat["name"], 
-            color=cat["color"], 
+            name=cat["name"],
+            color=cat["color"],
             priority=cat["priority"]
-        ) 
+        )
         for cat in raw_categories
     }
 
@@ -535,14 +546,21 @@ def get_homepage_data(current_user: dict = Depends(get_current_user)):
             category_id=task["category_id"],
             title=task["title"],
             description=task["description"],
-            due_date=datetime.fromisoformat(task["due_date"]) if not task["due_date"] == None else None,
-            start_time=datetime.fromisoformat(task["start_time"]) if not task["start_time"] == None else None,
-            end_time=datetime.fromisoformat(task["end_time"]) if not task["end_time"] == None else None,
-            status=task["status"], # not null, "complete" or "incomplete" exclusively
+            due_date=datetime.fromisoformat(
+                task["due_date"]) if not task["due_date"] == None else None,
+            start_time=datetime.fromisoformat(
+                task["start_time"]) if not task["start_time"] == None else None,
+            end_time=datetime.fromisoformat(
+                task["end_time"]) if not task["end_time"] == None else None,
+            # not null, "complete" or "incomplete" exclusively
+            status=task["status"],
             is_recurring=task["is_recurring"],
-            created_at=datetime.fromisoformat(task["created_at"]) if not task["created_at"] == None else None,
-            completed_at=datetime.fromisoformat(task["created_at"]) if not task["created_at"] == None else None,
-            recurring_days= recurring_days[task["id"]] if task["is_recurring"] else []
+            created_at=datetime.fromisoformat(
+                task["created_at"]) if not task["created_at"] == None else None,
+            completed_at=datetime.fromisoformat(
+                task["created_at"]) if not task["created_at"] == None else None,
+            recurring_days=recurring_days[task["id"]
+                                          ] if task["is_recurring"] else []
         )
         for task in raw_tasks
     }
@@ -587,15 +605,3 @@ def get_homepage_data(current_user: dict = Depends(get_current_user)):
     logger.debug(f"Debug: homepage data {homepage_data.model_dump_json()} ")
 
     return homepage_data
-
-
-
-
-
-
-
-     
-    
-    
-
-
