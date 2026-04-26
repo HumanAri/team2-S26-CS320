@@ -88,24 +88,66 @@ export default function AddTaskModal({ open = false, onClose, categories = [], o
     onClose?.()
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault()
     if (isSubmitDisabled) return
 
-    onAddTask?.({
-      id: Date.now().toString(),
-      name: taskName.trim(),
-      category,
-      dueDate: formatDueDate(date),
-      startTime: formatClockTime(startTime),
-      endTime: formatClockTime(endTime),
-      priority,
-      recurringDays: selectedDays,
-      completed: false,
-    })
+    try {
+      const token = localStorage.getItem('token')
 
-    resetForm()
-    onClose?.()
+      // find the category object to get its id
+      const selectedCategory = categories.find(c => c.name === category)
+      if (!selectedCategory) return
+
+      // map day names to day numbers (0=Sun, 1=Mon, etc.)
+      const dayMap = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }
+      const recurrenceDayNumbers = selectedDays.map(d => dayMap[d])
+
+      // build timestamps from date + time inputs
+      const dueDate = date ? `${date}T23:59:00` : null
+      const startTimestamp = date && startTime ? `${date}T${startTime}:00` : null
+      const endTimestamp = date && endTime ? `${date}T${endTime}:00` : null
+
+      const res = await fetch('http://localhost:8000/api/tasks', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          category_id: selectedCategory.id,
+          title: taskName.trim(),
+          due_date: dueDate,
+          start_time: startTimestamp,
+          end_time: endTimestamp,
+          is_recurring: selectedDays.length > 0,
+          recurrence_days: recurrenceDayNumbers,
+        }),
+      })
+
+      if (!res.ok) {
+        console.error('Failed to create task')
+        return
+      }
+
+      // still update local state so it shows up immediately
+      onAddTask?.({
+        id: Date.now().toString(),
+        name: taskName.trim(),
+        category,
+        dueDate: formatDueDate(date),
+        startTime: formatClockTime(startTime),
+        endTime: formatClockTime(endTime),
+        priority,
+        recurringDays: selectedDays,
+        completed: false,
+      })
+
+      resetForm()
+      onClose?.()
+    } catch {
+      console.error('Could not reach server')
+    }
   }
 
   if (!open) return null
