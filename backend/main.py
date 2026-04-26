@@ -1,3 +1,5 @@
+
+
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -9,6 +11,11 @@ import os
 from dotenv import load_dotenv
 from database import supabase
 import bcrypt
+from user_data_classes import *
+
+# for debugging, delete later
+import logging
+logger = logging.getLogger("uvicorn.error")
 
 load_dotenv()
 
@@ -339,16 +346,6 @@ def set_pfp(body: PFPRequest, current_user: dict = Depends(get_current_user)):
 # steps 2 and 3: creating categories
 
 
-class Category(BaseModel):
-    name: str
-    color: str
-    priority: int = 1
-
-
-class Categories(BaseModel):
-    categories: list[Category]
-    semester_id: str
-
 
 @app.post("/api/categories")
 def make_categories(body: Categories, current_user: dict = Depends(get_current_user)):
@@ -442,3 +439,163 @@ def set_privacy(body: PrivacyRequest, current_user: dict = Depends(get_current_u
 
     if not existing.data:
         raise HTTPException(status_code=404, detail="User does not exist")
+
+# Logic for populating homepage from existing user data
+
+class HomepageDataRequest(BaseModel):
+    categories: dict[str, Category]
+    tasks: dict[str, Task]
+    myFriends: list[FriendStub]
+    incomingFriendRequests: list[FriendStub]
+
+@app.get("/api/homepage", response_model=HomepageDataRequest)
+def get_homepage_data(current_user: dict = Depends(get_current_user)):
+    email = current_user.get("email")
+
+    user = supabase.table("users").select("id").eq("email", email).execute()
+    if not user.data:
+        raise HTTPException(status_code=404, detail="User does not exist")
+    else:
+        user_id = user.data[0]["id"]
+
+    raw_categories = (
+        supabase.table("categories")
+        .select("*")
+        .eq("user_id", user_id)
+        .execute()
+    ).data
+
+    raw_tasks = (
+        supabase.table("tasks")
+        .select("*")
+        .eq("user_id", user_id)
+        .execute()
+    ).data
+    
+    # to do: package recurring days with tasks and send with get req
+    raw_recurring_days = (
+        supabase.table("recurrence_days")
+        .select("*")
+        .in_("task_id", [task["id"] for task in raw_tasks])
+        .execute()
+    ).data
+
+    # aggregate recurring day objects in to a single hash table by task id
+    recurring_days = dict()
+    for day in raw_recurring_days:
+        if day["task_id"] in recurring_days:
+            recurring_days[day["task_id"]].append(day["day_of_week"])
+        else:
+            recurring_days[day["task_id"]] = [day["day_of_week"]]
+
+
+
+    raw_friendships = (
+        supabase.table("friendships")
+        .select("*")
+        .or_(f"user1_id.eq.{user_id},user2_id.eq.{user_id}")
+        .execute()
+    ).data
+
+    # converting the raw friendship table rows in to a list of user ids
+    
+    my_accepted_friendships = [fs for fs in raw_friendships if fs["status"] == 1]
+    my_friend_ids = [fs["user2_id"] if (fs["user1_id"] == user_id) else fs["user1_id"] for fs in my_accepted_friendships]
+
+    my_pending_friendships = [fs for fs in raw_friendships if fs["status"] == 0]
+    my_friend_req_ids = [fs["user2_id"] if (fs["user1_id"] == user_id) else fs["user1_id"] for fs in my_pending_friendships]
+
+    my_friends = (
+        supabase.table("users")
+        .select("*")
+        .in_("id", my_friend_ids)
+        .execute()
+    ).data
+
+    my_friend_requests = (
+        supabase.table("users")
+        .select("*")
+        .in_("id", my_friend_req_ids)
+        .execute()
+    ).data
+
+    # put the raw data in to an object
+
+    categories = {
+        str(cat["id"]): Category(
+            name=cat["name"], 
+            color=cat["color"], 
+            priority=cat["priority"]
+        ) 
+        for cat in raw_categories
+    }
+
+    tasks = {
+        str(task["id"]): Task(
+            category_id=task["category_id"],
+            title=task["title"],
+            description=task["description"],
+            due_date=datetime.fromisoformat(task["due_date"]) if not task["due_date"] == None else None,
+            start_time=datetime.fromisoformat(task["start_time"]) if not task["start_time"] == None else None,
+            end_time=datetime.fromisoformat(task["end_time"]) if not task["end_time"] == None else None,
+            status=task["status"], # not null, "complete" or "incomplete" exclusively
+            is_recurring=task["is_recurring"],
+            created_at=datetime.fromisoformat(task["created_at"]) if not task["created_at"] == None else None,
+            completed_at=datetime.fromisoformat(task["created_at"]) if not task["created_at"] == None else None,
+            recurring_days= recurring_days[task["id"]] if task["is_recurring"] else []
+        )
+        for task in raw_tasks
+    }
+
+    myFriends = [
+        FriendStub(
+            id=friend["id"],
+            email=friend["email"],
+            profile_picture=friend["profile_picture"],
+            full_name=f"{friend["first_name"]} {friend["last_name"]}",
+            display_name=friend["display_name"],
+            share_goals=friend["share_goals"],
+            share_results=friend["share_results"],
+            share_other=friend["share_other"],
+            share_all=friend["share_all"],
+        )
+        for friend in my_friends
+    ]
+
+    incomingFriendRequests = [
+        FriendStub(
+            id=friend["id"],
+            email=friend["email"],
+            profile_picture=friend["profile_picture"],
+            full_name=f"{friend["first_name"]} {friend["last_name"]}",
+            display_name=friend["display_name"],
+            share_goals=friend["share_goals"],
+            share_results=friend["share_results"],
+            share_other=friend["share_other"],
+            share_all=friend["share_all"],
+        )
+        for friend in my_friend_requests
+    ]
+
+    homepage_data = HomepageDataRequest(
+        categories=categories,
+        tasks=tasks,
+        myFriends=myFriends,
+        incomingFriendRequests=incomingFriendRequests
+    )
+
+    logger.debug(f"Debug: homepage data {homepage_data.model_dump_json()} ")
+
+    return homepage_data
+
+
+
+
+
+
+
+     
+    
+    
+
+

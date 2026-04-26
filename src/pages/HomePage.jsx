@@ -254,12 +254,41 @@ export default function HomePage() {
       }
     }
 
+    async function loadHomePageData() {
+      try {
+        const response = await fetch('http://localhost:8000/api/homepage', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+
+        if (!response.ok) return
+
+        const data = await response.json()
+        console.log(data)
+        if (isActive) {
+          const due_date = (data.due_date) ? new Date(data.due_date) : null
+          const start_time = (data.start_time) ? new Date(data.start_time) : null
+          const end_time = (data.end_time) ? new Date(data.end_time) : null
+          const created_at = (data.created_at) ? new Date(data.created_at) : null
+        }
+
+
+      } catch {
+
+      }
+      
+    }
+
     loadProfile()
+    loadHomePageData()
 
     return () => {
       isActive = false
     }
   }, [])
+
+
 
   function handleDeleteTask(taskToDelete) {
     setTasks((currentTasks) => currentTasks.filter((task) => task.id !== taskToDelete.id))

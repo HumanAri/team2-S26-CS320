@@ -30,7 +30,7 @@
     * npm install
     * npm run dev
   4. In your backend terminal, run:
-    * uvicorn main:app --reload
+    * uvicorn main:app --reload 
   5. Open a browser and go to: http://localhost:5173
 
 
