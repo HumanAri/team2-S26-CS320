@@ -2,9 +2,10 @@ from pydantic import BaseModel
 from datetime import datetime
 
 class Category(BaseModel):
+    id: str
     name: str
     color: str
-    priority: int = 1
+    priority: int
 
 class Categories(BaseModel):
     categories: list[Category]

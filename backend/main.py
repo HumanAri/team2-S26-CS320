@@ -443,8 +443,8 @@ def set_privacy(body: PrivacyRequest, current_user: dict = Depends(get_current_u
 # Logic for populating homepage from existing user data
 
 class HomepageDataRequest(BaseModel):
-    categories: dict[str, Category]
-    tasks: dict[str, Task]
+    categories: list[Category]
+    tasks: list[Task]
     myFriends: list[FriendStub]
     incomingFriendRequests: list[FriendStub]
 
@@ -521,17 +521,18 @@ def get_homepage_data(current_user: dict = Depends(get_current_user)):
 
     # put the raw data in to an object
 
-    categories = {
-        str(cat["id"]): Category(
+    categories = [
+        Category(
+            id=cat["id"],
             name=cat["name"], 
             color=cat["color"], 
             priority=cat["priority"]
         ) 
         for cat in raw_categories
-    }
+    ]
 
-    tasks = {
-        str(task["id"]): Task(
+    tasks = [
+        Task(
             category_id=task["category_id"],
             title=task["title"],
             description=task["description"],
@@ -545,7 +546,7 @@ def get_homepage_data(current_user: dict = Depends(get_current_user)):
             recurring_days= recurring_days[task["id"]] if task["is_recurring"] else []
         )
         for task in raw_tasks
-    }
+    ]
 
     myFriends = [
         FriendStub(
