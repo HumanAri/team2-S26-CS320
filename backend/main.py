@@ -324,6 +324,51 @@ def regular_login(body: LoginRequest):
 
     return {"token": token, "email": user["email"]}
 
+# Creating a new task
+class TaskRequest(BaseModel):
+    category_id: str
+    title: str
+    description: str = "" 
+    due_date: str = None
+    start_time: str = None
+    end_time: str = None
+    is_recurring: bool = False
+    recurrence_days: list[int] = []
+
+@app.post("/api/tasks")
+def create_task(body: TaskRequest, current_user: dict = Depends(get_current_user)):
+    email = current_user.get("email")
+
+    user = supabase.table("users").select("id").eq("email", email).execute()
+    if not user.data:
+        raise HTTPException(status_code=404, detail="User does not exist")
+
+    user_id = user.data[0]["id"]
+
+    task = supabase.table("tasks").insert({
+        "user_id": user_id,
+        "category_id": body.category_id,
+        "title": body.title,
+        "description": body.description,
+        "due_date": body.due_date,
+        "start_time": body.start_time,
+        "end_time": body.end_time,
+        "status": "incomplete",
+        "is_recurring": body.is_recurring,
+    }).execute()
+
+    task_id = task.data[0]["id"]
+
+    # if the task is recurring, insert the recurrence days in to the recurrence_days table
+    if body.is_recurring and body.recurrence_days:
+        rows = []
+        for day in body.recurrence_days:
+            rows.append({"task_id": task_id, "day_of_week": day})
+        supabase.table("recurrence_days").insert(rows).execute()
+
+    return task.data[0]
+
+
 
 # ONBOARDING logic: (Step1-5)
 
