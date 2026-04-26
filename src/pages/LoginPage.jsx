@@ -28,6 +28,7 @@ export default function LoginPage() {
           return
         }
         localStorage.setItem('token', data.token)
+        localStorage.setItem('semester_id', data.semester_id);
         navigate('/home')
       } catch {
         setError('Could not connect to server')
@@ -53,6 +54,7 @@ export default function LoginPage() {
           return
         }
         localStorage.setItem('token', data.token)
+        localStorage.setItem('semester_id', data.semester_id);
         navigate('/home')
       } catch {
         setError('Could not connect to server')
