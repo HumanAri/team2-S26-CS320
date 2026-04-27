@@ -15,6 +15,7 @@ class Categories(BaseModel):
 
 
 class Task(BaseModel):
+    id: str
     category_id: str
     title: str
     description: str

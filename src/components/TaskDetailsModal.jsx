@@ -1,10 +1,7 @@
 import { useEffect } from 'react'
 import { Check, Tag, Trash2, X } from 'lucide-react'
 
-export default function TaskDetailsModal({ open = false, task, onClose, onDelete, onMarkDone }) {
-  const categoryLabel = typeof task?.category === 'object'
-    ? task.category?.name
-    : task?.category
+export default function TaskDetailsModal({ open = false, task, categories, onClose, onDelete, onMarkDone }) {
 
   useEffect(() => {
     if (!open) return undefined
@@ -45,7 +42,7 @@ export default function TaskDetailsModal({ open = false, task, onClose, onDelete
         <div className="task-details-modal-header">
           <div>
             <p className="task-details-modal-kicker">Task</p>
-            <h2 id="task-details-modal-title" className="task-details-modal-title">{task.name}</h2>
+            <h2 id="task-details-modal-title" className="task-details-modal-title">{task.title}</h2>
           </div>
           <button
             type="button"
@@ -61,7 +58,7 @@ export default function TaskDetailsModal({ open = false, task, onClose, onDelete
           <span className="task-details-modal-label">Category</span>
           <div className="task-details-modal-category">
             <Tag size={16} aria-hidden="true" />
-            <span>{categoryLabel || 'Uncategorized'}</span>
+            <span>{task.my_category(categories).name || 'Uncategorized'}</span>
           </div>
         </div>
 

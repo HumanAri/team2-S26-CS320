@@ -45,7 +45,7 @@ export default function HomePage() {
     setFriendRequests((currentFriendRequests) => currentFriendRequests.filter((f) => f.id !== friend.id))
   }
 
-  function handleAddTask(task) {
+  function handleAddTask(new_task) {
     setTasks((currentTasks) => [task, ...currentTasks])
   }
 
@@ -125,9 +125,10 @@ export default function HomePage() {
 
 
           const tasks_list = data.tasks.map((task) => {
+
             return new Task(
               task.id,
-              task.name,
+              task.title,
               task.description,
               task.category_id,
               task.due_date,
@@ -161,7 +162,6 @@ export default function HomePage() {
           setFriends(friends_list);
           setFriendRequests(friend_requests);
 
-          console.log("done");
 
         }
 
@@ -174,14 +174,6 @@ export default function HomePage() {
     loadProfile()
     loadHomePageData()
 
-    console.log("categories");
-    console.log(categories);
-    console.log("tasks");
-    console.log(tasks);
-    console.log("friends");
-    console.log(friends);
-    console.log("requests");
-    console.log(friendRequests);
 
     return () => {
       isActive = false
@@ -277,6 +269,7 @@ export default function HomePage() {
       <TaskDetailsModal
         open={Boolean(selectedTask)}
         task={selectedTask}
+        categories={categories}
         onClose={handleCloseTaskModal}
         onDelete={handleDeleteTask}
         onMarkDone={handleMarkTaskDone}

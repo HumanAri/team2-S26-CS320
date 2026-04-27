@@ -14,7 +14,7 @@ export class Task {
 
   constructor(
     id="", 
-    name="", 
+    title="", 
     description="", 
     category_id="", 
     due_date=null, 
@@ -25,12 +25,12 @@ export class Task {
     completed=false
   ) {
     this.id = id;
-    this.name = name;
+    this.title = title;
     this.description = description;
     this.category_id = category_id;
-    this.due_date = (due_date === null) ? null : Date(due_date);
-    this.start_time = (start_time === null) ? null : Date(start_time);
-    this.end_time = (end_time === null) ? null : Date(end_time);
+    this.due_date = (due_date === null) ? null : new Date(due_date);
+    this.start_time = (start_time === null) ? null : new Date(start_time);
+    this.end_time = (end_time === null) ? null : new Date(end_time);
     this.priority = priority;
     this.recurring_days = recurring_days;
     this.completed = completed;
@@ -40,6 +40,7 @@ export class Task {
     if (this.due_date === null) {
       return "";
     } else {
+      console.log(this.due_date)
       return `${this.due_date.getMonth() + 1}/${this.due_date.getDate()}`;
     }
   }

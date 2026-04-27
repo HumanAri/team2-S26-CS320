@@ -31,11 +31,10 @@ export default function UpcomingTasksBar({ tasks = [], categories = [], onTaskCl
 
       <div className="upcoming-tasks-list">
         {tasks.map((task) => {
-          const category = categories.find((item) => item.name === task.category);
+          const category = task.my_category(categories);
           const borderColor = category?.color || '#cfd5de';
           const backgroundColor = lightenHexColor(borderColor);
           const priority = task.priority ?? category?.priority ?? 'N/A';
-
           return (
             <button
               key={task.id}
@@ -52,8 +51,8 @@ export default function UpcomingTasksBar({ tasks = [], categories = [], onTaskCl
                     aria-hidden="true"
                   />
                   <div className="upcoming-task-title-copy">
-                    <p className="upcoming-task-name">{task.name}</p>
-                    <p className="upcoming-task-category-name">{category?.name || task.category || 'Uncategorized'}</p>
+                    <p className="upcoming-task-name">{task.title}</p>
+                    <p className="upcoming-task-category-name">{category?.name || 'Uncategorized'}</p>
                   </div>
                 </div>
 
@@ -65,11 +64,11 @@ export default function UpcomingTasksBar({ tasks = [], categories = [], onTaskCl
               <div className="upcoming-task-bottom">
                 <div className="upcoming-task-detail">
                   <CalendarDays size={15} aria-hidden="true" />
-                  <span>{task.dueDate || 'No due date'}</span>
+                  <span>{task.short_due_date()|| 'No due date'}</span>
                 </div>
                 <div className="upcoming-task-detail">
                   <Clock3 size={15} aria-hidden="true" />
-                  <span>{task.startTime || 'No start time'}</span>
+                  <span>{task.start_time_string() || 'No start time'}</span>
                 </div>
               </div>
             </button>

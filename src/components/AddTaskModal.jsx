@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { CalendarDays, Clock3, Repeat2, Tag, X } from 'lucide-react'
+import { Task, Category } from '../types/task.js'
 
 const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const PRIORITY_OPTIONS = [1, 2, 3]
@@ -104,9 +105,20 @@ export default function AddTaskModal({ open = false, onClose, categories = [], o
       const recurrenceDayNumbers = selectedDays.map(d => dayMap[d])
 
       // build timestamps from date + time inputs
-      const dueDate = date ? `${date}T23:59:00` : null
-      const startTimestamp = date && startTime ? `${date}T${startTime}:00` : null
-      const endTimestamp = date && endTime ? `${date}T${endTime}:00` : null
+      const dueDate = date ? `${date}T23:59:00` : ""
+      const startTimestamp = date && startTime ? `${date}T${startTime}:00` : ""
+      const endTimestamp = date && endTime ? `${date}T${endTime}:00` : ""
+
+      const body = {
+        category_id: selectedCategory.id,
+        title: taskName.trim(),
+        description: "",
+        due_date: dueDate,
+        start_time: startTimestamp,
+        end_time: endTimestamp,
+        is_recurring: selectedDays.length > 0,
+        recurrence_days: recurrenceDayNumbers
+      }
 
       const res = await fetch('http://localhost:8000/api/tasks', {
         method: 'POST',
@@ -114,15 +126,7 @@ export default function AddTaskModal({ open = false, onClose, categories = [], o
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          category_id: selectedCategory.id,
-          title: taskName.trim(),
-          due_date: dueDate,
-          start_time: startTimestamp,
-          end_time: endTimestamp,
-          is_recurring: selectedDays.length > 0,
-          recurrence_days: recurrenceDayNumbers,
-        }),
+        body: JSON.stringify(body),
       })
 
       if (!res.ok) {
@@ -130,21 +134,23 @@ export default function AddTaskModal({ open = false, onClose, categories = [], o
         return
       }
 
+      const new_task = new Task(
+        crypto.randomUUID(),
+        body.category_id,
+        body.title,
+        body.description,
+        body.due_date,
+        body.start_time,
+        body.end_time,
+        body.is_recurring,
+        body.recurrence_days
+      )
+
       // still update local state so it shows up immediately
-      onAddTask?.({
-        id: Date.now().toString(),
-        name: taskName.trim(),
-        category,
-        dueDate: formatDueDate(date),
-        startTime: formatClockTime(startTime),
-        endTime: formatClockTime(endTime),
-        priority,
-        recurringDays: selectedDays,
-        completed: false,
-      })
+      onAddTask(new_task)
 
       resetForm()
-      onClose?.()
+      onClose()
     } catch {
       console.error('Could not reach server')
     }
