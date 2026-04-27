@@ -136,14 +136,15 @@ export default function AddTaskModal({ open = false, onClose, categories = [], o
 
       const new_task = new Task(
         crypto.randomUUID(),
-        body.category_id,
         body.title,
         body.description,
+        body.category_id,
         body.due_date,
         body.start_time,
         body.end_time,
-        body.is_recurring,
-        body.recurrence_days
+        priority,
+        body.recurrence_days,
+        false
       )
 
       // still update local state so it shows up immediately

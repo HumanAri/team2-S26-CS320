@@ -46,7 +46,7 @@ export default function HomePage() {
   }
 
   function handleAddTask(new_task) {
-    setTasks((currentTasks) => [task, ...currentTasks])
+    setTasks((currentTasks) => [new_task, ...currentTasks])
   }
 
   async function handleAddCategory(category) {
