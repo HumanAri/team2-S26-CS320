@@ -98,7 +98,12 @@ export default function AddFriendModal({ open = false, onClose }) {
       })
 
       if (res.ok) {
-        setSent(true)
+        const data = await res.json()
+        if (data.pending?.includes(result.email)) {
+          setResult((prev) => ({ ...prev, friendship_status: 0 }))
+        } else {
+          setSent(true)
+        }
       } else {
         setError('Failed to send friend request')
       }
