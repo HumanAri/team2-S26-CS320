@@ -84,44 +84,19 @@ export default function AddCategoryModal({ open = false, onClose, onAddCategory 
     onClose?.()
   }
 
-  async function handleSubmit(event) {
+  function handleSubmit(event) {
     event.preventDefault()
     if (isSubmitDisabled) return
 
-    try {
-      const token = localStorage.getItem('token')
-      const semester_id = localStorage.getItem('semester_id')
+    onAddCategory?.({
+      id: `cat-${Date.now()}`,
+      name: categoryName.trim(),
+      color: selectedColor,
+      priority: 3,
+    })
 
-      const res = await fetch('http://localhost:8000/api/categories', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          categories: [{ name: categoryName.trim(), color: selectedColor, priority: 3 }],
-          semester_id,
-        }),
-      })
-
-      if (!res.ok) {
-        console.error('Failed to create category')
-        return
-      }
-
-      // still update local state so it shows up immediately
-      onAddCategory?.({
-        id: `cat-${Date.now()}`,
-        name: categoryName.trim(),
-        color: selectedColor,
-        priority: 3,
-      })
-
-      resetForm()
-      onClose?.()
-    } catch {
-      console.error('Could not reach server')
-    }
+    resetForm()
+    onClose?.()
   }
 
   if (!open) return null
