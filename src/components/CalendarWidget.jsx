@@ -11,10 +11,16 @@ const END_HOUR = 23
 const SLOT_HEIGHT = 72
 const HOUR_ROWS = Array.from({ length: END_HOUR - START_HOUR + 1 }, (_, index) => START_HOUR + index)
 
-function parseDueDate(dueDate) {
-  if (!dueDate) return null
+function parseDateValue(dateValue) {
+  if (!dateValue) return null
+  if (dateValue instanceof Date) {
+    return Number.isNaN(dateValue.getTime()) ? null : dateValue
+  }
 
-  const [monthText, dayText] = dueDate.split('/')
+  const parsedDate = new Date(dateValue)
+  if (!Number.isNaN(parsedDate.getTime())) return parsedDate
+
+  const [monthText, dayText] = String(dateValue).split('/')
   const month = Number.parseInt(monthText, 10)
   const day = Number.parseInt(dayText, 10)
 
@@ -26,10 +32,13 @@ function parseDueDate(dueDate) {
   return date
 }
 
-function parseTimeToMinutes(timeText) {
-  if (!timeText) return null
+function parseTimeToMinutes(timeValue) {
+  if (!timeValue) return null
 
-  const normalized = timeText.trim().toUpperCase()
+  const dateValue = parseDateValue(timeValue)
+  if (dateValue) return dateValue.getHours() * 60 + dateValue.getMinutes()
+
+  const normalized = String(timeValue).trim().toUpperCase()
   const match = normalized.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/)
   if (!match) return null
 
@@ -75,6 +84,8 @@ function addDays(date, daysToAdd) {
 }
 
 function sameDay(left, right) {
+  if (!left || !right) return false
+
   return (
     left.getFullYear() === right.getFullYear() &&
     left.getMonth() === right.getMonth() &&
@@ -83,29 +94,39 @@ function sameDay(left, right) {
 }
 
 function isTaskOnRecurringDay(task, dayIndex) {
-  if (!Array.isArray(task.recurringDays) || task.recurringDays.length === 0) return false
+  const recurringDays = task.recurring_days || task.recurringDays
+  if (!Array.isArray(recurringDays) || recurringDays.length === 0) return false
 
   const dayAliases = new Set([
+    dayIndex,
+    String(dayIndex),
     WEEK_DAYS[dayIndex],
     WEEK_DAYS[dayIndex].toLowerCase(),
     ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][dayIndex],
     ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][dayIndex],
   ])
 
-  return task.recurringDays.some((value) => dayAliases.has(String(value).trim()))
+  return recurringDays.some((value) => dayAliases.has(value) || dayAliases.has(String(value).trim()))
 }
 
 function getTaskDurationMinutes(task) {
-  const startMinutes = parseTimeToMinutes(task.startTime)
-  const endMinutes = parseTimeToMinutes(task.endTime)
+  const startMinutes = parseTimeToMinutes(task.start_time || task.startTime)
+  const endMinutes = parseTimeToMinutes(task.end_time || task.endTime)
 
   if (startMinutes === null) return 60
   if (endMinutes !== null && endMinutes > startMinutes) return endMinutes - startMinutes
   return 60
 }
 
-function getCategoryMap(categories) {
-  return new Map(categories.map((category) => [category.name, category]))
+function getTaskCategory(task, categories) {
+  if (typeof task.my_category === 'function') return task.my_category(categories)
+
+  return categories.find(
+    (category) =>
+      category.id === task.category_id ||
+      category.id === task.categoryId ||
+      category.name === task.category
+  )
 }
 
 export default function CalendarWidget({ tasks = [], categories = [], onTaskClick }) {
@@ -132,17 +153,15 @@ export default function CalendarWidget({ tasks = [], categories = [], onTaskClic
     [isCurrentWeek, today, weekStart]
   )
 
-  const categoryMap = useMemo(() => getCategoryMap(categories), [categories])
-
   const scheduledTasks = useMemo(
     () =>
       tasks
         .map((task) => {
-          const category = categoryMap.get(task.category)
-          const startMinutes = parseTimeToMinutes(task.startTime)
+          const category = getTaskCategory(task, categories)
+          const startMinutes = parseTimeToMinutes(task.start_time || task.startTime)
           if (startMinutes === null) return null
 
-          const dueDate = parseDueDate(task.dueDate)
+          const dueDate = parseDateValue(task.due_date || task.dueDate)
           const dayIndexFromDate = dueDate ? days.findIndex((day) => sameDay(day.date, dueDate)) : -1
           const dayIndex = dayIndexFromDate >= 0
             ? dayIndexFromDate
@@ -152,7 +171,7 @@ export default function CalendarWidget({ tasks = [], categories = [], onTaskClic
 
           const durationMinutes = getTaskDurationMinutes(task)
           return {
-            ...task,
+            task,
             category,
             dayIndex,
             startMinutes,
@@ -161,7 +180,7 @@ export default function CalendarWidget({ tasks = [], categories = [], onTaskClic
           }
         })
         .filter(Boolean),
-    [categoryMap, days, tasks]
+    [categories, days, tasks]
   )
 
   const currentTimePosition = useMemo(() => {
@@ -260,11 +279,12 @@ export default function CalendarWidget({ tasks = [], categories = [], onTaskClic
                     ))}
 
                     {scheduledTasks
-                      .filter((task) => task.dayIndex === dayIndex)
-                      .map((task) => {
-                        const accentColor = task.category?.color || '#cfd5de'
-                        const top = ((task.startMinutes - START_HOUR * 60) / 60) * SLOT_HEIGHT
-                        const height = Math.max((task.durationMinutes / 60) * SLOT_HEIGHT - 6, 48)
+                      .filter((scheduledTask) => scheduledTask.dayIndex === dayIndex)
+                      .map((scheduledTask) => {
+                        const { task, category, startMinutes, endMinutes, durationMinutes } = scheduledTask
+                        const accentColor = category?.color || '#cfd5de'
+                        const top = ((startMinutes - START_HOUR * 60) / 60) * SLOT_HEIGHT
+                        const height = Math.max((durationMinutes / 60) * SLOT_HEIGHT - 6, 48)
 
                         return (
                           <button
@@ -285,16 +305,16 @@ export default function CalendarWidget({ tasks = [], categories = [], onTaskClic
                               aria-hidden="true"
                             />
                             <div className="calendar-widget-task-body">
-                              <p className="calendar-widget-task-name">{task.name}</p>
+                              <p className="calendar-widget-task-name">{task.title || task.name}</p>
                               <p className="calendar-widget-task-category">
-                                {task.category?.name || task.category || 'Uncategorized'}
+                                {category?.name || task.category || 'Uncategorized'}
                               </p>
                               <div className="calendar-widget-task-time">
                                 <Clock3 size={13} aria-hidden="true" />
                                 <span>
-                                  {formatMinutesLabel(task.startMinutes)}
+                                  {formatMinutesLabel(startMinutes)}
                                   {' - '}
-                                  {formatMinutesLabel(task.endMinutes)}
+                                  {formatMinutesLabel(endMinutes)}
                                 </span>
                               </div>
                             </div>
