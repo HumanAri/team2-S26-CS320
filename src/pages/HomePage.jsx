@@ -53,7 +53,7 @@ export default function HomePage() {
     const token = localStorage.getItem('token');
     const semesterId = localStorage.getItem('semester_id')
 
-    await fetch('http://localhost:8000/api/categories', {
+    const res = await fetch('http://localhost:8000/api/categories', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -65,7 +65,11 @@ export default function HomePage() {
       })
     });
 
-    setCategories(currentCategories => [category, ...currentCategories]);
+    const data = await res.json();
+    const savedCategory = data.created?.[0];
+    const categoryWithRealId = savedCategory ? { ...category, id: savedCategory.id } : category;
+
+    setCategories(currentCategories => [categoryWithRealId, ...currentCategories]);
   }
 
   function handleSelectTask(task) {

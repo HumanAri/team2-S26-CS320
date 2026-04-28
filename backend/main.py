@@ -610,8 +610,7 @@ def get_homepage_data(current_user: dict = Depends(get_current_user)):
                 task["created_at"]) if not task["created_at"] == None else None,
             completed_at=datetime.fromisoformat(
                 task["created_at"]) if not task["created_at"] == None else None,
-            recurring_days=recurring_days[task["id"]
-                                          ] if task["is_recurring"] else []
+            recurring_days=recurring_days.get(task["id"], []) if task["is_recurring"] else []
         )
         for task in raw_tasks
     ]

@@ -3,7 +3,7 @@ from datetime import datetime
 
 
 class Category(BaseModel):
-    id: str
+    id: str | None = None
     name: str
     color: str
     priority: int
