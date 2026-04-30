@@ -46,3 +46,12 @@ Search for an email that's not in the database and it will let you know it doesn
 (Either in the onboarding process or on the homepage)
 
 After successfully sending a friend request, in the database under the friends table there should be an entry with "status = 0" meaning 'pending'
+
+You can log in to d@umass.edu and accept it and it will reflect in the database with status = 1 & the friend will stay in the friends widget
+                                  if you reject it, it will reflect in the database with status = 2 for rejected & the request will disapear out of the friends widget
+
+To make sure this works it must both:
+(1) reflect the status correctly in the database
+(2) if you refresh the page your decision should be saved
+
+                                  
