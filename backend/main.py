@@ -487,6 +487,10 @@ def accept_friend(friend_id: str, current_user: dict = Depends(get_current_user)
     # find the pending request (they sent it to me)
     friendship = supabase.table("friendships").select("id").eq(
         "user1_id", friend_id).eq("user2_id", my_id).eq("status", 0).execute()
+    
+    if not friendship.data:
+        friendship = supabase.table("friendships").select("id").eq(
+            "user1_id", my_id).eq("user2_id", friend_id).eq("status", 0).execute()
 
     if not friendship.data:
         raise HTTPException(status_code=404, detail="No pending request found")
@@ -512,6 +516,10 @@ def reject_friend(friend_id: str, current_user: dict = Depends(get_current_user)
     # find the pending request (they sent it to me)
     friendship = supabase.table("friendships").select("id").eq(
         "user1_id", friend_id).eq("user2_id", my_id).eq("status", 0).execute()
+
+    if not friendship.data:
+        friendship = supabase.table("friendships").select("id").eq(
+            "user1_id", my_id).eq("user2_id", friend_id).eq("status", 0).execute()
 
     if not friendship.data:
         raise HTTPException(status_code=404, detail="No pending request found")
