@@ -18,6 +18,7 @@
       SUPABASE_URL should be https://slxuaqhbykwlftdfuhmn.supabase.co
       SUPABASE_KEY will be posted on Slack
       FRONTEND_URL should be http://localhost:5173 if doing local testing
+      RESEND_API_KEY = ... (Should be posted on the Slack)
 
 ## How to test and run this:
   1. Make sure you're in team2-S26-CS320 directory
@@ -33,6 +34,13 @@
     * uvicorn main:app --reload 
   5. Open a browser and go to: http://localhost:5173
 
+## Workflow for Windows users
+
+1. Make sure you're in team2-S26-CS320 directory
+2. Create the venv virtual environment, inside terminal: * cd backend * Set-ExecutionPolicy RemoteSigned -Scope CurrentUser * python3 -m venv venv * venv\Scripts\Activate.ps1 * pip install -r requirements.txt (If this doesn't work, try pip3 install -r requirements.txt)
+3. Open a separate terminal in the root directory: * npm install * npm run dev
+4. In your backend terminal, run: * uvicorn main:app --reload
+5. Open a browser and go to: http://localhost:5173
 
 Testing user: 
 

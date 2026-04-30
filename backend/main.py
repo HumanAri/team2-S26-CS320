@@ -427,9 +427,53 @@ class FriendRequestRequest(BaseModel):
     friends: list[str]
 
 
+RESEND_API_KEY = os.getenv("RESEND_API_KEY")
+
+def send_friend_request_email(recipient_email, recipient_first_name, sender_name):
+        subject = "You've received a new friend request on Habitask!"
+        html_content = f"""
+        <div style='font-family: Arial, sans-serif; max-width: 480px; margin: auto;'>
+            <p>Hi {recipient_first_name},</p>
+            <p>You’ve received a new friend request on Habitask 👋</p>
+            <p><b>From:</b> {sender_name}</p>
+            <p>Habitask is all about staying accountable and reaching your goals together. By accepting this request, you’ll be able to:</p>
+            <ul>
+                <li>Share your goals and progress</li>
+                <li>Stay motivated with a friend</li>
+                <li>See each other’s task activity (based on your privacy settings)</li>
+            </ul>
+            <p>👉 <b>Review and respond to this request:</b></p>
+            <p><a href='https://habitask.app/friends' style='background: #6c63ff; color: white; padding: 10px 18px; border-radius: 6px; text-decoration: none;'>View Friend Request</a></p>
+            <p>If you’re not expecting this request, you can safely ignore this email.</p>
+            <p>Stay consistent,</p>
+            <p>The Habitask Team</p>
+        </div>
+        """
+        data = {
+                "from": "Habitask <onboarding@resend.dev>",
+                "to": [recipient_email],
+                "subject": subject,
+                "html": html_content
+        }
+        headers = {
+                "Authorization": f"Bearer {RESEND_API_KEY}",
+                "Content-Type": "application/json"
+        }
+        try:
+                resp = requests.post("https://api.resend.com/emails", json=data, headers=headers, timeout=10)
+                resp.raise_for_status()
+        except Exception as e:
+                logger.error(f"Failed to send friend request email: {e}")
+                # Do not raise, just log
+
+class FriendRequestRequest(BaseModel):
+    friends: list[str]
+
+
 @app.post("/api/friends/requests")
 def make_friends(body: FriendRequestRequest, current_user: dict = Depends(get_current_user)):
     email = current_user.get("email")
+    sender_name = current_user.get("display_name")
 
     user1 = supabase.table("users").select("id").eq("email", email).execute()
     if not user1.data:
@@ -441,17 +485,19 @@ def make_friends(body: FriendRequestRequest, current_user: dict = Depends(get_cu
 
     for friend in body.friends:
         user2 = supabase.table("users").select(
-            "id").eq("email", friend).execute()
+            "id, email, first_name").eq("email", friend).execute()
 
         if not user2.data:
             user2 = supabase.table("users").select(
-                "id").eq("display_name", friend).execute()
+                "id, email, first_name").eq("display_name", friend).execute()
 
         if not user2.data:
             requests["not_found"].append(friend)
             continue
 
         user2_id = user2.data[0]["id"]
+        recipient_email = user2.data[0]["email"]
+        recipient_first_name = user2.data[0].get("first_name") or "there"
 
         # Check for existing pending requests
         existing = supabase.table('friendships').select('id').eq(
@@ -467,6 +513,9 @@ def make_friends(body: FriendRequestRequest, current_user: dict = Depends(get_cu
             "user2_id": user2_id,
             "status": 0,
         }).execute()
+
+        # Send email only for new requests
+        send_friend_request_email(recipient_email, recipient_first_name, sender_name)
 
         requests["sent"].append(friend)
 
