@@ -54,9 +54,26 @@ export default function HomePage() {
       setFriendRequests((currentRequests) => currentRequests.filter((f) => f.id !== friend.id))
     }
 
-  function handleRejectFriendRequest(friend) {
-    setFriendRequests((currentFriendRequests) => currentFriendRequests.filter((f) => f.id !== friend.id))
-  }
+  async function handleRejectFriendRequest(friend) {
+      try {
+        const token = localStorage.getItem('token')
+        const res = await fetch(`http://localhost:8000/api/friends/reject/${friend.id}`, {
+          method: 'PATCH',
+          headers: { Authorization: `Bearer ${token}` },
+        })
+
+        if (!res.ok) {
+          console.error('Failed to reject friend request')
+          return
+        }
+      } catch {
+        console.error('Could not reach server')
+        return
+      }
+
+      // remove from requests list
+      setFriendRequests((currentRequests) => currentRequests.filter((f) => f.id !== friend.id))
+    }
 
   function handleAddTask(new_task) {
     setTasks((currentTasks) => [new_task, ...currentTasks])
