@@ -379,6 +379,36 @@ def create_task(body: TaskRequest, current_user: dict = Depends(get_current_user
 
     return task.data[0]
 
+class UpdateTaskRequest(BaseModel):
+    id: str
+    category_id: str
+    title: str
+    description: Union[str, None]
+    due_date: Union[str, None]
+    start_time: Union[str, None]
+    end_time: Union[str, None]
+    is_recurring: bool = False
+    status: str
+
+@app.post("/api/update-task")
+def set_task(body: UpdateTaskRequest, current_user: dict = Depends(get_current_user)):
+    email = current_user.get("email")
+
+    user = supabase.table("users").select("id").eq("email", email).execute()
+    if not user.data:
+        raise HTTPException(status_code=404, detail="User does not exist")
+    
+    user_id = user.data[0]["id"]
+    
+    task = (
+        supabase.table("tasks")
+        .update(body.model_dump())
+        .eq("id", body.id)
+    ).execute()
+
+
+    
+
 
 
 # ONBOARDING logic: (Step1-5)

@@ -140,7 +140,7 @@ export default function HomePage() {
               task.end_time,
               task.priority,
               task.recurring_days,
-              task.completed
+              task.status == "incomplete" ? false : true
             )
           });
 
@@ -192,15 +192,60 @@ export default function HomePage() {
     setSelectedTask(null)
   }
 
-  function handleMarkTaskDone(taskToUpdate) {
+  async function handleMarkTaskDone(taskToUpdate) {
+
+    taskToUpdate.completed = true;
+
+    console.log(JSON.stringify(taskToUpdate))
+
+    // {
+    //     category_id: selectedCategory.id,
+    //     title: taskName.trim(),
+    //     description: "",
+    //     due_date: dueDate,
+    //     start_time: startTimestamp,
+    //     end_time: endTimestamp,
+    //     is_recurring: selectedDays.length > 0,
+    //     recurrence_days: recurrenceDayNumbers
+    //   }
+
+    try {
+      const token = localStorage.getItem('token')
+      const res = await fetch('http://localhost:8000/api/update-task', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+        body: JSON.stringify({
+          id: taskToUpdate.id,
+          title: taskToUpdate.title,
+          description: taskToUpdate.description,
+          category_id: taskToUpdate.category_id,
+          due_date: taskToUpdate.due_date,
+          start_time: taskToUpdate.start_time,
+          end_time: taskToUpdate.end_time,
+          priority: taskToUpdate.priority,
+          status: "complete"
+        })
+      });
+    } catch (err) {
+      console.log(err)
+      console.log("post failed")
+    }
+
     setTasks((currentTasks) =>
-      currentTasks.map((task) =>
-        task.id === taskToUpdate.id
-          ? { ...task, completed: true }
-          : task
+      currentTasks.map((task) => {
+          if (task.id == taskToUpdate.id) {
+            return taskToUpdate;
+          } else {
+            return task;
+          }
+          
+        }
       )
     )
-    setSelectedTask((currentTask) => (currentTask ? { ...currentTask, completed: true } : currentTask))
+    setSelectedTask((currentTask) => (currentTask ? taskToUpdate : currentTask))
   }
 
   return (

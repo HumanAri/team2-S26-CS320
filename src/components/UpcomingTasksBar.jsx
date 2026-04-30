@@ -23,6 +23,11 @@ function lightenHexColor(hexColor, amount = 0.8) {
 }
 
 export default function UpcomingTasksBar({ tasks = [], categories = [], onTaskClick }) {
+  const sortedTasks = [...tasks].sort((leftTask, rightTask) => {
+    if (Boolean(leftTask.completed) === Boolean(rightTask.completed)) return 0;
+    return leftTask.completed ? 1 : -1;
+  });
+
   return (
     <section className="upcoming-tasks-bar">
       <div className="upcoming-tasks-header">
@@ -30,16 +35,16 @@ export default function UpcomingTasksBar({ tasks = [], categories = [], onTaskCl
       </div>
 
       <div className="upcoming-tasks-list">
-        {tasks.map((task) => {
+        {sortedTasks.map((task) => {
           const category = task.my_category(categories);
           const borderColor = category?.color || '#cfd5de';
-          const backgroundColor = lightenHexColor(borderColor);
+          const backgroundColor = lightenHexColor(borderColor, task.completed ? 0.9 : 0.8);
           const priority = task.priority ?? category?.priority ?? 'N/A';
           return (
             <button
               key={task.id}
               type="button"
-              className="upcoming-task-card"
+              className={`upcoming-task-card${task.completed ? ' is-complete' : ''}`}
               style={{ borderColor, backgroundColor }}
               onClick={() => onTaskClick?.(task)}
             >
@@ -75,7 +80,7 @@ export default function UpcomingTasksBar({ tasks = [], categories = [], onTaskCl
           );
         })}
 
-        {tasks.length === 0 && <p className="upcoming-tasks-empty">No upcoming tasks yet.</p>}
+        {sortedTasks.length === 0 && <p className="upcoming-tasks-empty">No upcoming tasks yet.</p>}
       </div>
     </section>
   );
