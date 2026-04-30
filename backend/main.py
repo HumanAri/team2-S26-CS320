@@ -474,6 +474,56 @@ def make_friends(body: FriendRequestRequest, current_user: dict = Depends(get_cu
     return requests
 
 
+# accept a friend request
+@app.patch("/api/friends/accept/{friend_id}")
+def accept_friend(friend_id: str, current_user: dict = Depends(get_current_user)):
+    email = current_user.get("email")
+    user = supabase.table("users").select("id").eq("email", email).execute()
+    if not user.data:
+        raise HTTPException(status_code=404, detail="User does not exist")
+
+    my_id = user.data[0]["id"]
+
+    # find the pending request (they sent it to me)
+    friendship = supabase.table("friendships").select("id").eq(
+        "user1_id", friend_id).eq("user2_id", my_id).eq("status", 0).execute()
+
+    if not friendship.data:
+        raise HTTPException(status_code=404, detail="No pending request found")
+
+    # update status to 1 (accepted)
+    supabase.table("friendships").update(
+        {"status": 1}
+    ).eq("id", friendship.data[0]["id"]).execute()
+
+    return {"accepted": True}
+
+
+# reject a friend request
+@app.patch("/api/friends/reject/{friend_id}")
+def reject_friend(friend_id: str, current_user: dict = Depends(get_current_user)):
+    email = current_user.get("email")
+    user = supabase.table("users").select("id").eq("email", email).execute()
+    if not user.data:
+        raise HTTPException(status_code=404, detail="User does not exist")
+
+    my_id = user.data[0]["id"]
+
+    # find the pending request (they sent it to me)
+    friendship = supabase.table("friendships").select("id").eq(
+        "user1_id", friend_id).eq("user2_id", my_id).eq("status", 0).execute()
+
+    if not friendship.data:
+        raise HTTPException(status_code=404, detail="No pending request found")
+
+    # update status to 2 (rejected)
+    supabase.table("friendships").update(
+        {"status": 2}
+    ).eq("id", friendship.data[0]["id"]).execute()
+
+    return {"rejected": True}
+
+
 # step 5: setting privacy settings
 class PrivacyRequest(BaseModel):
     share_goals: bool
