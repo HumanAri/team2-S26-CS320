@@ -30,16 +30,29 @@ export default function HomePage() {
   const [friends, setFriends] = useState([]);
   const [friendRequests, setFriendRequests] = useState([]);
 
-  function handleAcceptFriendRequest(friend) {
-    if (!friendRequests) return
+  async function handleAcceptFriendRequest(friend) {
+      if (!friendRequests) return
 
-    setFriends((currentFriends) => [
-      friend,
-      ...currentFriends,
-    ])
+      try {
+        const token = localStorage.getItem('token')
+        const res = await fetch(`http://localhost:8000/api/friends/accept/${friend.id}`, {
+          method: 'PATCH',
+          headers: { Authorization: `Bearer ${token}` },
+        })
 
-    setFriendRequests((currentFriendRequests) => currentFriendRequests.filter((f) => f.id !== friend.id))
-  }
+        if (!res.ok) {
+          console.error('Failed to accept friend request')
+          return
+        }
+      } catch {
+        console.error('Could not reach server')
+        return
+      }
+
+      // move them from requests to friends list
+      setFriends((currentFriends) => [friend, ...currentFriends])
+      setFriendRequests((currentRequests) => currentRequests.filter((f) => f.id !== friend.id))
+    }
 
   function handleRejectFriendRequest(friend) {
     setFriendRequests((currentFriendRequests) => currentFriendRequests.filter((f) => f.id !== friend.id))
