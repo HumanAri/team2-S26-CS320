@@ -299,7 +299,7 @@ export default function HomePage() {
       </div>
 
       <div className="home-upcoming-section">
-        <UpcomingTasksBar tasks={tasks} categories={categories} onTaskClick={handleSelectTask} />
+        <UpcomingTasksBar tasks={tasks.filter(t => !t.completed)} categories={categories} onTaskClick={handleSelectTask} />
       </div>
 
       <AddTaskModal
