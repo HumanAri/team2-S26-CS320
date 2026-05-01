@@ -1588,6 +1588,10 @@ input:focus { border-color: var(--input-focus); }
   filter: brightness(0.98);
 }
 
+.upcoming-task-card.is-complete {
+  opacity: 0.68;
+}
+
 .upcoming-task-name {
   font-size: 0.97rem;
   font-weight: 700;
