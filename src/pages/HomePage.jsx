@@ -186,11 +186,26 @@ export default function HomePage() {
   }, [])
 
 
+  async function handleDeleteTask(taskToDelete) {
+      try {
+        const token = localStorage.getItem('token')
+        const res = await fetch(`http://localhost:8000/api/tasks/${taskToDelete.id}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` },
+        })
 
-  function handleDeleteTask(taskToDelete) {
-    setTasks((currentTasks) => currentTasks.filter((task) => task.id !== taskToDelete.id))
-    setSelectedTask(null)
-  }
+        if (!res.ok) {
+          console.error('Failed to delete task')
+          return
+        }
+      } catch {
+        console.error('Could not reach server')
+        return
+      }
+
+      setTasks((currentTasks) => currentTasks.filter((task) => task.id !== taskToDelete.id))
+      setSelectedTask(null)
+    }
 
   async function handleMarkTaskDone(taskToUpdate) {
 

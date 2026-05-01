@@ -379,6 +379,29 @@ def create_task(body: TaskRequest, current_user: dict = Depends(get_current_user
 
     return task.data[0]
 
+
+# deleting a task, also deletes the recurrence days if it's a recurring task
+@app.delete("/api/tasks/{task_id}")
+def delete_task(task_id: str, current_user: dict = Depends(get_current_user)):
+    email = current_user.get("email")
+
+    user = supabase.table("users").select("id").eq("email", email).execute()
+    if not user.data:
+        raise HTTPException(status_code=404, detail="User does not exist")
+
+    user_id = user.data[0]["id"]
+
+    # make sure the task belongs to this user
+    task = supabase.table("tasks").select("id").eq("id", task_id).eq("user_id", user_id).execute()
+    if not task.data:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    # delete recurrence days first, then the task
+    supabase.table("recurrence_days").delete().eq("task_id", task_id).execute()
+    supabase.table("tasks").delete().eq("id", task_id).execute()
+
+    return {"deleted": True}
+
 class UpdateTaskRequest(BaseModel):
     id: str
     category_id: str
