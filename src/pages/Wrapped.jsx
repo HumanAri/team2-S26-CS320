@@ -1,22 +1,19 @@
 import { useState, useEffect } from "react";
 import icon from '/src/logo.png'
 
-// ── API helper ────────────────────────────────────────────────────
-const BASE_URL = "http://localhost:8000"; // change to your deployed URL
-
-async function apiFetch(path, token) {
-  const res = await fetch(`${BASE_URL}${path}`, {
+async function baseGet(path, token) {
+  const res = await fetch(`http://localhost:8000${path}`, {
     method: "GET",
     headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
+      'Content-Type': "application/json",
+      'Authorization': `Bearer ${token}`,
     },
   });
-  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  if (!res.ok) throw new Error("Error getting");
   return res.json();
 }
 
-// ── Date/time formatters ──────────────────────────────────────────
+//Formatting helper functions
 function formatDate(dateStr) {
   if (!dateStr) return "—";
   return new Date(dateStr).toLocaleDateString("en-US", {
@@ -33,19 +30,21 @@ function formatHour(hour) {
   return `${display}:00 ${suffix}`;
 }
 
-// ── Highlight renderers ───────────────────────────────────────────
-const HIGHLIGHT_RENDERERS = {
+//Added emojis for each highlight/criticism/insight so each slide can kinda be more uniform
+//I switched away from the figma here, focusing on the last slide (animal slide) as the base template
+//Highlights
+const HIGHLIGHTS = {
   most_productive_week: (d) => ({
     emoji: "🗓️", label: "Most Productive Week",
-    big: formatDate(d.week_start),
-    sub: `${d.tasks_completed} tasks completed`,
-    caption: "Your most productive week of the semester 🔥",
+    big: formatDate(d.best_week),
+    sub: `${d.tasks} tasks completed`,
+    caption: "Your most productive week of the semester",
   }),
   avg_tasks_per_week: (d) => ({
     emoji: "📊", label: "Weekly Average",
-    big: String(d.avg_tasks_per_week),
+    big: String(d.average_tasks),
     sub: "tasks per week on average",
-    caption: "Your consistent weekly output this semester",
+    caption: "Your weekly output this semester",
   }),
   total_completed: (d) => ({
     emoji: "✅", label: "Total Tasks",
@@ -55,8 +54,8 @@ const HIGHLIGHT_RENDERERS = {
   }),
   busiest_day: (d) => ({
     emoji: "⚡", label: "Busiest Day",
-    big: formatDate(d.day),
-    sub: `${d.tasks_completed} tasks in one day`,
+    big: formatDate(d.best_day),
+    sub: `${d.tasks} tasks in one day`,
     caption: "Your single most productive day",
   }),
   longest_streak: (d) => ({
@@ -79,42 +78,48 @@ const HIGHLIGHT_RENDERERS = {
   }),
   completion_rate: (d) => ({
     emoji: "🎯", label: "Completion Rate",
-    big: `${d.completion_rate_pct}%`,
+    big: `${d.completion_rate}%`,
     sub: "of tasks completed",
     caption: "Your overall task completion rate",
   }),
   on_time_rate: (d) => ({
     emoji: "⏰", label: "On-Time Rate",
-    big: `${d.on_time_rate_pct}%`,
+    big: `${d.on_time_rate}%`,
     sub: "submitted on time",
     caption: "How often you beat your deadlines",
   }),
+  total_scheduled_time: (d) => ({
+    emoji: "📅", label: "Total Time",
+    big: `${d.total_minutes} minutes`,
+    sub: "scheduled across all tasks",
+    caption: "How long you spent in tasks",
+  }),
 };
 
-// ── Criticism renderers ───────────────────────────────────────────
-const CRITICISM_RENDERERS = {
+//Criticisms
+const CRITICISMS = {
   neglected_category: (d) => ({
     emoji: "😬", label: "Most Neglected Category",
     big: d.name,
     sub: `Only ${d.completion_rate}% completion rate`,
-    caption: "This category needs some love next semester…",
+    caption: "This category needs some love next semester...",
   }),
   procrastination_score: (d) => ({
     emoji: "🐌", label: "Procrastination Score",
     big: `${d.avg_hours_before_deadline}h`,
     sub: "avg hours before deadline",
-    caption: "You're cutting it close… maybe start a bit earlier?",
+    caption: "You're cutting it close...",
   }),
   procrastination_category: (d) => ({
     emoji: "⏳", label: "You Procrastinate On",
     big: d.name,
     sub: `${d.avg_hours_before_deadline}h before deadline on average`,
-    caption: "This is where your last-minute energy goes",
+    caption: "In before the finish line!",
   }),
 };
 
-// ── Insight renderers ─────────────────────────────────────────────
-const INSIGHT_RENDERERS = {
+//Insights
+const INSIGHTS = {
   recurring_ratio: (d) => ({
     emoji: "🔁", label: "Recurring vs One-Off",
     big: `${d.recurring_pct}%`,
@@ -130,15 +135,15 @@ const INSIGHT_RENDERERS = {
         ? `+${d.second_half - d.first_half} more tasks in second half`
         : `${d.first_half - d.second_half} more tasks in first half`,
       caption: improved
-        ? "You finished the semester stronger than you started!"
-        : "You came out of the gate strong — keep that energy up!",
+        ? "You finished strong!"
+        : "You started strong!",
     };
   },
   time_consuming_category: (d) => ({
     emoji: "⏱️", label: "Most Time-Consuming",
     big: d.name,
     sub: "took the most of your time",
-    caption: "This category dominated your schedule",
+    caption: "This category ate up your time!",
   }),
   busiest_friend: (d) => ({
     emoji: "👯", label: "Busiest Friend",
@@ -156,14 +161,14 @@ const INSIGHT_RENDERERS = {
     emoji: "🎖️", label: "Friend Percentile",
     big: `Top ${100 - d.percentile}%`,
     sub: "among your friends",
-    caption: "You're ahead of most of your friends!",
+    caption: "You're ahead!",
   }),
 };
 
-// ── Animal metadata ───────────────────────────────────────────────
-const ANIMAL_META = {
+//Animals
+const ANIMALS = {
   busy_bee:                { emoji: "🐝", name: "Busy Bee",                caption: "You completed a remarkably high number of tasks." },
-  calendar_cat:            {emoji:  "🐱", name: "Calendar Cat",            caption: "You've scheduled hours of productivity."}, 
+  calendar_cat:            { emoji: "🐱", name: "Calendar Cat",            caption: "You've scheduled hours of productivity."}, 
   focused_fox:             { emoji: "🦊", name: "Focused Fox",             caption: "Your weekly output is remarkably consistent." },
   deadline_dragon:         { emoji: "🐉", name: "Deadline Dragon",         caption: "On-time rate ≥ 95%." },
   plan_panda:              { emoji: "🐼", name: "Plan Panda",              caption: "You plan tasks way ahead of deadlines." },
@@ -176,15 +181,14 @@ const ANIMAL_META = {
   procrastinating_penguin: { emoji: "🐧", name: "Procrastinating Penguin", caption: "Average completion within 24 hours of the deadline." },
 };
 
-// ── Pill label map ────────────────────────────────────────────────
+//PILL label
 const PILL = {
-  highlight: { modifier: "highlight", label: "✨ Highlight" },
-  criticism:  { modifier: "criticism",  label: "😬 Criticism" },
-  insight:    { modifier: "insight",    label: "💡 Insight"   },
+  highlight: { modifier: "highlight", label: "Highlight" },
+  criticism: { modifier: "criticism",  label: "Criticism" },
+  insight: { modifier: "insight",    label: "Insight"   },
 };
 
-// ── Slide components ──────────────────────────────────────────────
-
+//Actual slides
 function SlideIntro({ onNext, semesterName }) {
   return (
     <div className="wrapped-slide">
@@ -231,7 +235,7 @@ function StatSlide({ type, rendered, onNext, onReset, isLast }) {
 }
 
 function SlideAnimal({ animal, onReset }) {
-  const meta = ANIMAL_META[animal] ?? ANIMAL_META.busy_bee;
+  const meta = ANIMALS[animal] ?? ANIMALS.calendar_cat;
   return (
     <div className="wrapped-slide">
       <div className="wrapped-big-title">
@@ -249,23 +253,26 @@ function SlideAnimal({ animal, onReset }) {
   );
 }
 
-// ── Data fetching hook ────────────────────────────────────────────
-function useWrappedData(semesterId, token) {
+//Get all data
+function useWrappedData() {
+  const token = localStorage.getItem('token');
+  const semesterId = localStorage.getItem('semester_id')
+
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!semesterId || !token) return;
+    if (!semesterId || !token || semesterId === "null") return;
 
     async function fetchAll() {
       setLoading(true);
       try {
         const [semesterRes, highlights, criticism, insights, animalRes] = await Promise.all([
-          apiFetch(`/api/semesters/${semesterId}`, token),
-          apiFetch(`/api/wrapped/${semesterId}/highlights`, token),
-          apiFetch(`/api/wrapped/${semesterId}/criticism`,  token),
-          apiFetch(`/api/wrapped/${semesterId}/insights`,   token),
-          apiFetch(`/api/wrapped/${semesterId}/animal`,     token),
+          baseGet(`/api/semesters/${semesterId}`, token),
+          baseGet(`/api/wrapped/${semesterId}/highlights`, token),
+          baseGet(`/api/wrapped/${semesterId}/criticism`, token),
+          baseGet(`/api/wrapped/${semesterId}/insights`, token),
+          baseGet(`/api/wrapped/${semesterId}/animal`, token),
         ]);
         setData({ semesterName: semesterRes.name, highlights, criticism, insights, animal: animalRes.animal });
       } catch (err) {
@@ -282,23 +289,23 @@ function useWrappedData(semesterId, token) {
   return { data, loading };
 }
 
-// ── Build ordered slide list from API data ────────────────────────
+//Build actual wrapped slides
 function buildSlides(data) {
   const slides = [];
 
   for (const [key, val] of Object.entries(data.highlights)) {
-    const renderer = HIGHLIGHT_RENDERERS[key];
-    if (renderer) slides.push({ type: "highlight", rendered: renderer(val) });
+    const highlight = HIGHLIGHTS[key];
+    if (highlight) slides.push({ type: "highlight", rendered: highlight(val) });
   }
 
   for (const [key, val] of Object.entries(data.criticism)) {
-    const renderer = CRITICISM_RENDERERS[key];
-    if (renderer) slides.push({ type: "criticism", rendered: renderer(val) });
+    const criticism = CRITICISMS[key];
+    if (criticism) slides.push({ type: "criticism", rendered: criticism(val) });
   }
 
   for (const [key, val] of Object.entries(data.insights)) {
-    const renderer = INSIGHT_RENDERERS[key];
-    if (renderer) slides.push({ type: "insight", rendered: renderer(val) });
+    const insight = INSIGHTS[key];
+    if (insight) slides.push({ type: "insight", rendered: insight(val) });
   }
 
   slides.push({ type: "animal", animal: data.animal });
@@ -306,7 +313,6 @@ function buildSlides(data) {
   return slides;
 }
 
-// ── Main App ──────────────────────────────────────────────────────
 export default function SemesterWrapped({ semesterId, token }) {
   const { data, loading } = useWrappedData(semesterId, token);
   const [current, setCurrent] = useState(0);

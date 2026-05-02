@@ -25,8 +25,8 @@ export default function App() {
             <Route path="/onboarding/3" element={<Step3Priority />} />
             <Route path="/onboarding/4" element={<Step4Friends />} />
             <Route path="/onboarding/5" element={<Step5Privacy />} />
-            <Route path="*"             element={<Navigate to="/" />} />
             <Route path="/wrapped"      element={<Wrapped />} />
+            <Route path="*"             element={<Navigate to="/" />} />
           </Routes>
         </HashRouter>
       </OnboardingProvider>

@@ -1,5 +1,3 @@
-
-
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -15,6 +13,7 @@ from user_data_classes import *
 from typing import Union
 import random
 from collections import defaultdict
+import statistics
 
 # for debugging, delete later
 import logging
@@ -276,7 +275,7 @@ def regular_signup(body: SignupRequest):
     if now.month <= 6:
         semester_name = f"Spring {now.year}"
         semester_start = datetime(now.year, 1, 25)
-        semester_end = datetime(now.year, 5, 5)
+        semester_end = datetime(now.year, 5, 31)
     else:
         semester_name = f"Fall {now.year}"
         semester_start = datetime(now.year, 9, 1)
@@ -648,6 +647,10 @@ def get_homepage_data(current_user: dict = Depends(get_current_user)):
 
 
 
+
+
+
+
 #Wrapped queries - very long, I tried to put it in another file but it was too confusing with the supabase calls. Sorry.
 
 #get the random number of highlights, insights, etc.
@@ -692,25 +695,32 @@ def parse_dt(dt):
 #Each function corresponds to one query in Notion, more of less
 def most_productive_week(tasks: list):
     week_counts = defaultdict(int)
+
     for task in tasks:
         dt = parse_dt(task["completed_at"])
         if dt:
             week_key = dt.strftime("%Y-W%W")
             week_counts[week_key] += 1
+
     if not week_counts:
         return None
+    
     best_week = max(week_counts, key=week_counts.get)
     #returns the best overall week and tasks completed in that week
     return {"best_week": best_week, "tasks": week_counts[best_week]}
 
 def average_tasks(tasks: list, s_id: str):
     semester = supabase.table("semesters").select("start_date, end_date").eq("id", s_id).execute()
+
     if not semester.data:
         return None
+    
     start = parse_dt(semester.data[0]["start_date"])
     end = parse_dt(semester.data[0]["end_date"])
+
     if not start or not end:
         return None
+    
     weeks = max(((end-start).days)/7, 1)
     avg = round(len(tasks)/weeks, 1)
     #returns average tasks per week
@@ -721,20 +731,25 @@ def total_completed(tasks: list):
 
 def single_busiest_day(tasks: list):
     day_counts = defaultdict(int)
+
     for task in tasks:
-        dt = parse_dt(t["completed_at"])
+        dt = parse_dt(task["completed_at"])
         if dt:
             day_counts[dt.date().isoformat()] += 1
+
     if not day_counts:
         return None
+    
     best_day = max(day_counts, key=day_counts.get)
     #return best day and tasks completed that day
     return {"day": best_day, "tasks": day_counts[best_day]}
 
 def longest_streak(tasks: list):
-    dates = sorted(set(parse_dt(t["completed_at"]).date() for task in tasks if parse_dt(task["completed_at"])))
+    dates = sorted(set(parse_dt(task["completed_at"]).date() for task in tasks if parse_dt(task["completed_at"])))
+
     if not dates:
         return None
+    
     longest = current = 1
     for i in range(1, len(dates)):
         if (dates[i] - dates[i - 1]).days == 1:
@@ -742,16 +757,20 @@ def longest_streak(tasks: list):
             longest = max(longest, current)
         else:
             current = 1
+
     return {"longest_streak": longest}
 
 def peak_hour(tasks: list):
     hour_counts = defaultdict(int)
+
     for task in tasks:
         dt = parse_dt(task["completed_at"])
         if dt:
             hour_counts[dt.hour] += 1
+
     if not hour_counts:
         return None
+    
     best_hour = max(hour_counts, key=hour_counts.get)
     return {"hour": best_hour, "completions": hour_counts[best_hour]}
 
@@ -769,14 +788,18 @@ def best_day_of_week(tasks: list):
 def completion_rate(all_tasks: list):
     if not all_tasks:
         return None
+    
     completed = sum(1 for task in all_tasks if task["completed_at"])
     rate = round((completed/len(all_tasks))*100, 1)
+
     return {"completion_rate": rate}
 
 def on_time_rate(tasks: list):
     with_deadline = [task for task in tasks if task.get("due_date")]
+
     if not with_deadline:
         return None
+    
     on_time = sum(1 for t in with_deadline if parse_dt(t["completed_at"]) and parse_dt(t["due_date"])and parse_dt(t["completed_at"]) <= parse_dt(t["due_date"]))
     rate = round((on_time/len(with_deadline))*100, 1)
     return {"on_time_rate": rate}
@@ -792,24 +815,27 @@ def total_scheduled_time(tasks):
 
     if total_seconds == 0:
         return None
+    
+    total_minutes = total_seconds//60
 
-    return {"total_seconds": total_seconds}
+    return {"total_minutes": total_minutes}
 
 def neglected_category(all_tasks: list):
     cat_stats = defaultdict(lambda: {"total": 0, "completed": 0, "name": ""})
-    for t in all_tasks:
-        cid = t["category_id"]
+
+    for task in all_tasks:
+        cid = task["category_id"]
         cat_stats[cid]["total"] += 1
-        cat_stats[cid]["name"] = t["categories"]["name"]
-        if t["completed_at"]:
+        cat_stats[cid]["name"] = task["categories"]["name"]
+        if task["completed_at"]:
             cat_stats[cid]["completed"] += 1
+
     if not cat_stats:
         return None
-    worst = min(
-        cat_stats.values(),
-        key=lambda c: c["completed"] / c["total"] if c["total"] else 1
-    )
+    
+    worst = min(cat_stats.values(), key=lambda c: c["completed"] / c["total"] if c["total"] else 1)
     rate = round(worst["completed"] / worst["total"] * 100, 1) if worst["total"] else 0
+
     return {"name": worst["name"], "completion_rate": rate}
 
 def procrastination_score(tasks: list):
@@ -820,31 +846,39 @@ def procrastination_score(tasks: list):
         if completed and due:
             hours = (due-completed).total_seconds()/3600
             diffs.append(hours)
+
     if not diffs:
         return None
+    
     avg = round(sum(diffs)/len(diffs), 1)
     return {"avg_hours_before_deadline": avg}
 
 def procrastination_category(tasks: list):
     category_diffs = defaultdict(list)
+
     for task in tasks:
         completed = parse_dt(task["completed_at"])
         due = parse_dt(task["due_date"])
         if completed and due:
             hours = (due - completed).total_seconds() / 3600
             category_diffs[task["categories"]["name"]].append(hours)
+
     if not category_diffs:
         return None
+    
     worst_category = min(category_diffs, key=lambda c: sum(category_diffs[c]) / len(category_diffs[c]))
     avg = round(sum(category_diffs[worst_category]) / len(category_diffs[worst_category]), 1)
+
     return {"name": worst_category, "avg_hours_before_deadline": avg}
 
 def recurring_ratio(all_tasks: list):
     recurring = sum(1 for task in all_tasks if task.get("is_recurring"))
     one_off = sum(1 for task in all_tasks if not task.get("is_recurring"))
     total = len(all_tasks)
+
     if not total:
         return None
+    
     pct = round((recurring/total)*100, 1)
     return {"recurring_count": recurring, "one_off_count": one_off, "recurring_pct": pct}
 
@@ -852,67 +886,70 @@ def productivity_trend(tasks: list, sid: str):
     sem = supabase.table("semesters").select("start_date, end_date").eq("id", sid).execute()
     if not sem.data:
         return None
+    
     start = parse_dt(sem.data[0]["start_date"])
     end = parse_dt(sem.data[0]["end_date"])
     if not start or not end:
         return None
+    
     midpoint = start + (end - start) / 2
-    first  = sum(1 for t in tasks if parse_dt(t["completed_at"]) and parse_dt(t["completed_at"]) < midpoint)
-    second = sum(1 for t in tasks if parse_dt(t["completed_at"]) and parse_dt(t["completed_at"]) >= midpoint)
+    first  = sum(1 for task in tasks if parse_dt(task["completed_at"]) and parse_dt(task["completed_at"]) < midpoint)
+    second = sum(1 for task in tasks if parse_dt(task["completed_at"]) and parse_dt(task["completed_at"]) >= midpoint)
     return {"first_half": first, "second_half": second}
 
 def most_time_consuming_category(tasks: list):
     cat_times = defaultdict(float)
-    for t in tasks:
-        start = parse_dt(t.get("start_time"))
-        end   = parse_dt(t.get("end_time"))
+
+    for task in tasks:
+        start = parse_dt(task.get("start_time"))
+        end   = parse_dt(task.get("end_time"))
         if start and end:
-            cat_times[t["categories"]["name"]] += (end - start).total_seconds()
+            cat_times[task["categories"]["name"]] += (end - start).total_seconds()
+
     if not cat_times:
         return None
+    
     top = max(cat_times, key=cat_times.get)
     return {"name": top}
 
 def weekly_consistency(tasks: list):
     week_counts = defaultdict(int)
-    for t in tasks:
-        dt = parse_dt(t["completed_at"])
+    for task in tasks:
+        dt = parse_dt(task["completed_at"])
         if dt:
-            week_counts[dt.strftime("%G-W%V")] += 1
+            week_counts[dt.strftime("%Y-W%W")] += 1
+
     if len(week_counts) < 2:
         return None
+    
     score = round(statistics.stdev(week_counts.values()), 2)
     return {"consistency_score": score}
 
 def night_pct(tasks: list):
     if not tasks:
         return None
-    night = sum(
-        1 for t in tasks
-        if parse_dt(t["completed_at"]) and
-        (parse_dt(t["completed_at"]).hour >= 22 or parse_dt(t["completed_at"]).hour < 4)
-    )
+    
+    night = sum(1 for task in tasks if parse_dt(task["completed_at"]) and (parse_dt(task["completed_at"]).hour >= 22 or parse_dt(task["completed_at"]).hour < 4))
+
     return {"night_pct": round(night / len(tasks) * 100, 1)}
 
 def morning_pct(tasks: list):
     if not tasks:
         return None
-    morning = sum(
-        1 for t in tasks
-        if parse_dt(t["completed_at"]) and
-        5 <= parse_dt(t["completed_at"]).hour <= 9
-    )
-    return {"morning_pct": round(morning / len(tasks) * 100, 1)}
+    
+    morning = sum(1 for task in tasks if parse_dt(task["completed_at"]) and 5 <= parse_dt(task["completed_at"]).hour <= 9)
+
+    return {"morning_pct": round((morning / len(tasks))* 100, 1)}
 
 def late_rate(tasks: list):
-    with_deadline = [t for t in tasks if t.get("due_date") and t.get("completed_at")]
+    with_deadline = [task for task in tasks if task.get("due_date") and task.get("completed_at")]
+
     if not with_deadline:
         return None
-    late = sum(
-        1 for t in with_deadline
-        if parse_dt(t["completed_at"]) > parse_dt(t["due_date"])
-    )
-    return {"late_rate_pct": round(late / len(with_deadline) * 100, 1)}
+    
+    late = sum(1 for task in with_deadline if parse_dt(task["completed_at"]) > parse_dt(task["due_date"]))
+
+    return {"late_rate_pct": round((late/len(with_deadline))*100, 1)}
 
 def friend_stats(uid: str):
     #Get friends of user, only keep friends that allow sharing the wrapped statistics
@@ -1099,10 +1136,11 @@ def get_animal(semester_id: str, current_user: dict = Depends(get_current_user))
     #Plan panda
     diffs = []
     for task in all_tasks:
-        created = parse_dt(t.get("created_at"))
-        due     = parse_dt(t.get("due_date"))
+        created = parse_dt(task.get("created_at"))
+        due     = parse_dt(task.get("due_date"))
         if created and due:
             diffs.append((due - created).days)
+            
     if diffs and round(sum(diffs) / len(diffs), 1) >= 7:
         qualified.append("plan_panda")
 
@@ -1144,4 +1182,3 @@ def get_animal(semester_id: str, current_user: dict = Depends(get_current_user))
 
     chosen = random.choice(qualified) if qualified else "calendar_cat"
     return {"animal": chosen}
-

@@ -2526,7 +2526,6 @@ input:focus { border-color: var(--input-focus); }
   line-height: 1;
 }
 
-/* Pill badge — highlight / criticism / insight */
 .wrapped-pill {
   display: inline-block;
   border-radius: 999px;
@@ -2543,7 +2542,6 @@ input:focus { border-color: var(--input-focus); }
 .wrapped-pill--criticism  { background: #c0392b; }
 .wrapped-pill--insight    { background: #2471a3; }
 
-/* CTA button — reuses your .ob-next-btn shape */
 .wrapped-btn {
   margin-top: 28px;
   padding: 0.85rem 2.5rem;
@@ -2559,13 +2557,12 @@ input:focus { border-color: var(--input-focus); }
 
 .wrapped-btn:hover { opacity: 0.85; }
 
-/* Logo box — top left, same style as your onboarding card */
 .wrapped-logo-box {
   position: absolute;
   top: 16px;
   left: 16px;
-  width: 60px;
-  height: 60px;
+  width: 425px;
+  height: 100px;
   background: var(--input-bg);
   border-radius: 14px;
   display: flex;
@@ -2575,7 +2572,6 @@ input:focus { border-color: var(--input-focus); }
   box-shadow: var(--card-shadow);
 }
 
-/* Nav dots */
 .wrapped-nav-dots {
   position: absolute;
   bottom: 14px;
@@ -2597,7 +2593,6 @@ input:focus { border-color: var(--input-focus); }
 
 .wrapped-nav-dot--active { background: var(--input-focus); }
 
-/* Animal circle */
 .wrapped-animal-circle {
   width: 160px;
   height: 160px;
@@ -2611,7 +2606,6 @@ input:focus { border-color: var(--input-focus); }
   box-shadow: var(--card-shadow);
 }
 
-/* Loading */
 .wrapped-loading {
   display: flex;
   flex-direction: column;
