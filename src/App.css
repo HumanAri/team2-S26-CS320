@@ -1933,6 +1933,47 @@ input:focus { border-color: var(--input-focus); }
   transform: translateY(-1px);
 }
 
+.privacy-settings-backdrop {
+  z-index: 30;
+}
+
+.privacy-settings-modal {
+  width: min(100%, 520px);
+}
+
+.privacy-settings-subtitle {
+  margin: -0.25rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.privacy-settings-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.privacy-settings-button {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.78rem 1rem;
+  background: var(--input-bg);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 120ms ease, filter 120ms ease;
+}
+
+.privacy-settings-button-primary {
+  background: var(--button-color-2);
+}
+
+.privacy-settings-button:hover {
+  transform: translateY(-1px);
+}
+
 .add-task-modal-backdrop {
   position: fixed;
   inset: 0;
