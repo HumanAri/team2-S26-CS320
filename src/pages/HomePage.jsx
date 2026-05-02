@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Brand from '../components/Brand'
 import FriendsWidget from '../components/FriendsWidget'
 import UpcomingTasksBar from '../components/UpcomingTasksBar'
@@ -12,6 +13,8 @@ import { Plus, FolderPlus } from 'lucide-react'
 import { Category, Task, Friend } from "../types/task.js"
 
 export default function HomePage() {
+  const navigate = useNavigate();
+
   const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false)
   const [isAddCategoryModalOpen, setIsAddCategoryModalOpen] = useState(false)
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false)
@@ -343,6 +346,11 @@ export default function HomePage() {
         open={isProfileModalOpen}
         onClose={() => setIsProfileModalOpen(false)}
         profile={profile}
+        onLogout={() => {
+          localStorage.removeItem('token')
+          localStorage.removeItem('semester_id')
+          navigate('/')
+        }}
       />
 
       <AddFriendModal

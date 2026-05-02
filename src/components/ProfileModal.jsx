@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { LogOut, Mail, Settings, User, X } from 'lucide-react'
 
-export default function ProfileModal({ open = false, onClose, profile }) {
+export default function ProfileModal({ open = false, onClose, profile, onLogout }) {
   useEffect(() => {
     if (!open) return undefined
 
@@ -78,7 +78,8 @@ export default function ProfileModal({ open = false, onClose, profile }) {
             <Settings size={17} aria-hidden="true" />
             <span>Settings</span>
           </button>
-          <button type="button" className="profile-modal-action profile-modal-action-logout">
+          <button type="button" className="profile-modal-action profile-modal-action-logout"
+            onClick={onLogout}>
             <LogOut size={17} aria-hidden="true" />
             <span>Log Out</span>
           </button>
