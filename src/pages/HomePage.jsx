@@ -30,8 +30,10 @@ export default function HomePage() {
   const [friends, setFriends] = useState([]);
   const [friendRequests, setFriendRequests] = useState([]);
 
-  function handleAcceptFriendRequest(friend) {
+  async function handleAcceptFriendRequest(friend) {
     if (!friendRequests) return
+
+    const token = localStorage.getItem('token');
 
     setFriends((currentFriends) => [
       friend,
@@ -39,10 +41,48 @@ export default function HomePage() {
     ])
 
     setFriendRequests((currentFriendRequests) => currentFriendRequests.filter((f) => f.id !== friend.id))
+
+    try {
+      const res = await fetch('http://localhost:8000/api/friends/change-status', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          friend_user_id: friend.id,
+          new_status: 1
+        })
+      });
+    } catch (err) {
+      console.log(err)
+    }
+  
+    
   }
 
-  function handleRejectFriendRequest(friend) {
+  async function handleRejectFriendRequest(friend) {
+    if (!friendRequests) return
     setFriendRequests((currentFriendRequests) => currentFriendRequests.filter((f) => f.id !== friend.id))
+   
+
+    const token = localStorage.getItem('token');
+
+    try {
+      const res = await fetch('http://localhost:8000/api/friends/change-status', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          friend_user_id: friend.id,
+          new_status: 2
+        })
+      });
+    } catch (err) {
+      console.log(err)
+    }
   }
 
   function handleAddTask(new_task) {
@@ -214,21 +254,10 @@ export default function HomePage() {
 
     console.log(JSON.stringify(taskToUpdate))
 
-    // {
-    //     category_id: selectedCategory.id,
-    //     title: taskName.trim(),
-    //     description: "",
-    //     due_date: dueDate,
-    //     start_time: startTimestamp,
-    //     end_time: endTimestamp,
-    //     is_recurring: selectedDays.length > 0,
-    //     recurrence_days: recurrenceDayNumbers
-    //   }
-
     try {
       const token = localStorage.getItem('token')
       const res = await fetch('http://localhost:8000/api/update-task', {
-      method: 'POST',
+      method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`

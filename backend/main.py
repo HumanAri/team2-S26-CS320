@@ -414,7 +414,7 @@ class UpdateTaskRequest(BaseModel):
     is_recurring: bool = False
     status: str
 
-@app.post("/api/update-task")
+@app.patch("/api/update-task")
 def set_task(body: UpdateTaskRequest, current_user: dict = Depends(get_current_user)):
     email = current_user.get("email")
 
@@ -536,6 +536,32 @@ def make_friends(body: FriendRequestRequest, current_user: dict = Depends(get_cu
 
     # To see which requests were successfully sent vs which couldn't send
     return requests
+
+
+class FriendshipStatusChangeRequest(BaseModel):
+    friend_user_id: str
+    new_status: int
+
+@app.patch("/api/friends/change-status")
+def accept_friend_request(body: FriendshipStatusChangeRequest, current_user: dict = Depends(get_current_user)):
+    email = current_user.get("email")
+
+    user = supabase.table("users").select("id").eq("email", email).execute()
+    if not user.data:
+        raise HTTPException(status_code=404, detail="User does not exist")
+    
+    user_id = user.data[0]["id"]
+
+    res = (
+        supabase.table("friendships")
+        .update({"status": body.new_status})
+        .or_(f"user1_id.eq.{user_id},user2_id.eq.{user_id}")
+        .or_(f"user1_id.eq.{body.friend_user_id},user2_id.eq.{body.friend_user_id}")
+    ).execute()
+
+    return res
+
+
 
 
 # step 5: setting privacy settings
