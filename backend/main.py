@@ -529,14 +529,12 @@ def make_friends(body: FriendRequestRequest, current_user: dict = Depends(get_cu
     return requests
 
 
-# this is probably a security vulnerability since if you had another user's id
-# you could accept on that user's behalf regardless of who you're signed in as.
-# oh well.
-class FriendAcceptRequest(BaseModel):
+class FriendshipStatusChangeRequest(BaseModel):
     friend_user_id: str
+    new_status: int
 
-@app.patch("/api/friends/accept")
-def accept_friend_request(body: FriendAcceptRequest, current_user: dict = Depends(get_current_user)):
+@app.patch("/api/friends/change-status")
+def accept_friend_request(body: FriendshipStatusChangeRequest, current_user: dict = Depends(get_current_user)):
     email = current_user.get("email")
 
     user = supabase.table("users").select("id").eq("email", email).execute()
@@ -547,12 +545,13 @@ def accept_friend_request(body: FriendAcceptRequest, current_user: dict = Depend
 
     res = (
         supabase.table("friendships")
-        .update({"status": 1})
+        .update({"status": body.new_status})
         .or_(f"user1_id.eq.{user_id},user2_id.eq.{user_id}")
         .or_(f"user1_id.eq.{body.friend_user_id},user2_id.eq.{body.friend_user_id}")
     ).execute()
 
     return res
+
 
 
 

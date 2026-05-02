@@ -35,30 +35,54 @@ export default function HomePage() {
 
     const token = localStorage.getItem('token');
 
-    try {
-      const res = await fetch('http://localhost:8000/api/friends/accept', {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({friend_user_id: friend.id})
-      });
-    } catch (err) {
-      console.log(err)
-    }
-    
-
     setFriends((currentFriends) => [
       friend,
       ...currentFriends,
     ])
 
     setFriendRequests((currentFriendRequests) => currentFriendRequests.filter((f) => f.id !== friend.id))
+
+    try {
+      const res = await fetch('http://localhost:8000/api/friends/change-status', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          friend_user_id: friend.id,
+          new_status: 1
+        })
+      });
+    } catch (err) {
+      console.log(err)
+    }
+  
+    
   }
 
-  function handleRejectFriendRequest(friend) {
+  async function handleRejectFriendRequest(friend) {
+    if (!friendRequests) return
     setFriendRequests((currentFriendRequests) => currentFriendRequests.filter((f) => f.id !== friend.id))
+   
+
+    const token = localStorage.getItem('token');
+
+    try {
+      const res = await fetch('http://localhost:8000/api/friends/change-status', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          friend_user_id: friend.id,
+          new_status: 2
+        })
+      });
+    } catch (err) {
+      console.log(err)
+    }
   }
 
   function handleAddTask(new_task) {
