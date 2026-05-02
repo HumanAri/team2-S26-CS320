@@ -68,7 +68,8 @@ export class Friend {
     share_goals=false, 
     share_results=false, 
     share_other=false, 
-    share_all=false
+    share_all=false,
+    activity_summary=null
   ) {
     this.id = id;
     this.full_name = full_name;
@@ -78,9 +79,52 @@ export class Friend {
     this.share_results = share_results;
     this.share_other = share_other;
     this.share_all = share_all;
+    this.activity_summary = activity_summary;
   }
 
   get_card_snippet() {
-    return "this is not implemented :(";
+    const stats = this.activity_summary;
+
+    if (!stats) {
+      return "Not sharing activity right now.";
+    }
+
+    const canSeeResults = this.share_all || this.share_results;
+    const canSeeGoals = this.share_all || this.share_goals;
+    const canSeeOther = this.share_all || this.share_other;
+
+    if (canSeeResults && stats.streak_days >= 3) {
+      return `On a ${stats.streak_days}-day productivity streak.`;
+    }
+
+    if (canSeeResults && stats.completed_this_week >= 10) {
+      return `Crushing the week with ${stats.completed_this_week} tasks done.`;
+    }
+
+    if (canSeeResults && stats.completed_today > 0) {
+      return `Finished ${stats.completed_today} ${this.task_word(stats.completed_today)} today.`;
+    }
+
+    if (canSeeGoals && stats.next_due_title) {
+      return `Focused on "${stats.next_due_title}" next.`;
+    }
+
+    if (canSeeGoals && stats.upcoming_count > 0) {
+      return `${stats.upcoming_count} ${this.task_word(stats.upcoming_count)} lined up.`;
+    }
+
+    if (canSeeGoals && stats.top_category) {
+      return `Mostly working on ${stats.top_category} lately.`;
+    }
+
+    if (canSeeOther && stats.recently_active) {
+      return "Keeping the task list moving.";
+    }
+
+    return "Keeping their plans low-key.";
+  }
+
+  task_word(count) {
+    return count === 1 ? "task" : "tasks";
   }
 }

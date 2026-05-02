@@ -13,6 +13,7 @@ from database import supabase
 import bcrypt
 from user_data_classes import *
 from typing import Union
+from collections import Counter
 
 # for debugging, delete later
 import logging
@@ -423,13 +424,23 @@ def set_task(body: UpdateTaskRequest, current_user: dict = Depends(get_current_u
     
     user_id = user.data[0]["id"]
     
+    task_update = body.model_dump()
+    if body.status == "complete":
+        task_update["completed_at"] = datetime.now(timezone.utc).isoformat()
+    else:
+        task_update["completed_at"] = None
+
     task = (
         supabase.table("tasks")
-        .update(body.model_dump())
+        .update(task_update)
         .eq("id", body.id)
+        .eq("user_id", user_id)
     ).execute()
 
+    if not task.data:
+        raise HTTPException(status_code=404, detail="Task not found")
 
+    return task.data[0]
     
 
 
@@ -559,6 +570,109 @@ class HomepageDataRequest(BaseModel):
     incomingFriendRequests: list[FriendStub]
 
 
+def parse_optional_datetime(value):
+    if value is None or value == "":
+        return None
+    if isinstance(value, datetime):
+        return value
+    if not isinstance(value, str):
+        return None
+
+    normalized_value = value.replace("Z", "+00:00")
+    try:
+        return datetime.fromisoformat(normalized_value)
+    except ValueError:
+        return None
+
+
+def completed_at_for_summary(task):
+    completed_at = parse_optional_datetime(task.get("completed_at"))
+    if completed_at is not None:
+        return completed_at
+
+    if task.get("status") == "complete":
+        return parse_optional_datetime(task.get("created_at"))
+
+    return None
+
+
+def build_friend_activity_summary(friend, friend_tasks, friend_categories):
+    share_results = friend["share_all"] or friend["share_results"]
+    share_goals = friend["share_all"] or friend["share_goals"]
+    share_other = friend["share_all"] or friend["share_other"]
+
+    if not (share_results or share_goals or share_other):
+        return None
+
+    today = datetime.now(timezone.utc).date()
+    week_start = today - timedelta(days=today.weekday())
+    summary = {}
+
+    completed_tasks = [
+        (task, completed_at_for_summary(task))
+        for task in friend_tasks
+        if task.get("status") == "complete"
+    ]
+    completed_tasks = [
+        (task, completed_at)
+        for task, completed_at in completed_tasks
+        if completed_at is not None
+    ]
+
+    if share_results:
+        completed_dates = [completed_at.date() for _, completed_at in completed_tasks]
+        summary["completed_today"] = sum(1 for date in completed_dates if date == today)
+        summary["completed_this_week"] = sum(
+            1 for date in completed_dates if week_start <= date <= today
+        )
+
+        completed_date_set = set(completed_dates)
+        streak_days = 0
+        streak_date = today
+        while streak_date in completed_date_set:
+            streak_days += 1
+            streak_date -= timedelta(days=1)
+        summary["streak_days"] = streak_days
+
+        if completed_tasks:
+            summary["last_completed_at"] = max(
+                completed_at for _, completed_at in completed_tasks
+            )
+
+    incomplete_tasks = [
+        task for task in friend_tasks if task.get("status") != "complete"
+    ]
+
+    if share_goals:
+        upcoming_tasks = [
+            task
+            for task in incomplete_tasks
+            if parse_optional_datetime(task.get("due_date")) is not None
+        ]
+        upcoming_tasks.sort(key=lambda task: parse_optional_datetime(task.get("due_date")))
+
+        summary["upcoming_count"] = len(incomplete_tasks)
+        if upcoming_tasks:
+            summary["next_due_title"] = upcoming_tasks[0].get("title")
+
+        category_names_by_id = {
+            category["id"]: category["name"] for category in friend_categories
+        }
+        category_counts = Counter(
+            task.get("category_id")
+            for task in incomplete_tasks
+            if task.get("category_id") in category_names_by_id
+        )
+        if category_counts:
+            top_category_id = category_counts.most_common(1)[0][0]
+            summary["top_category"] = category_names_by_id[top_category_id]
+
+    if share_other and not (share_results or share_goals):
+        summary["recently_active"] = len(completed_tasks) > 0 or len(incomplete_tasks) > 0
+
+    return FriendActivitySummary(**summary)
+
+
 @app.get("/api/homepage", response_model=HomepageDataRequest)
 def get_homepage_data(current_user: dict = Depends(get_current_user)):
     email = current_user.get("email")
@@ -584,12 +698,14 @@ def get_homepage_data(current_user: dict = Depends(get_current_user)):
     ).data
 
     # to do: package recurring days with tasks and send with get req
-    raw_recurring_days = (
-        supabase.table("recurrence_days")
-        .select("*")
-        .in_("task_id", [task["id"] for task in raw_tasks])
-        .execute()
-    ).data
+    raw_recurring_days = []
+    if raw_tasks:
+        raw_recurring_days = (
+            supabase.table("recurrence_days")
+            .select("*")
+            .in_("task_id", [task["id"] for task in raw_tasks])
+            .execute()
+        ).data
 
     # aggregate recurring day objects in to a single hash table by task id
     recurring_days = dict()
@@ -618,19 +734,52 @@ def get_homepage_data(current_user: dict = Depends(get_current_user)):
     my_friend_req_ids = [fs["user2_id"] if (
         fs["user1_id"] == user_id) else fs["user1_id"] for fs in my_pending_friendships]
 
-    my_friends = (
-        supabase.table("users")
-        .select("*")
-        .in_("id", my_friend_ids)
-        .execute()
-    ).data
+    my_friends = []
+    if my_friend_ids:
+        my_friends = (
+            supabase.table("users")
+            .select("*")
+            .in_("id", my_friend_ids)
+            .execute()
+        ).data
 
-    my_friend_requests = (
-        supabase.table("users")
-        .select("*")
-        .in_("id", my_friend_req_ids)
-        .execute()
-    ).data
+    my_friend_requests = []
+    if my_friend_req_ids:
+        my_friend_requests = (
+            supabase.table("users")
+            .select("*")
+            .in_("id", my_friend_req_ids)
+            .execute()
+        ).data
+
+    friend_tasks = []
+    friend_categories = []
+    if my_friend_ids:
+        friend_tasks = (
+            supabase.table("tasks")
+            .select("*")
+            .in_("user_id", my_friend_ids)
+            .execute()
+        ).data
+
+        friend_categories = (
+            supabase.table("categories")
+            .select("*")
+            .in_("user_id", my_friend_ids)
+            .execute()
+        ).data
+
+    friend_tasks_by_user_id = {
+        friend_id: [] for friend_id in my_friend_ids
+    }
+    for task in friend_tasks:
+        friend_tasks_by_user_id.setdefault(task["user_id"], []).append(task)
+
+    friend_categories_by_user_id = {
+        friend_id: [] for friend_id in my_friend_ids
+    }
+    for category in friend_categories:
+        friend_categories_by_user_id.setdefault(category["user_id"], []).append(category)
 
     # put the raw data in to an object
 
@@ -650,19 +799,14 @@ def get_homepage_data(current_user: dict = Depends(get_current_user)):
             category_id=task["category_id"],
             title=task["title"],
             description=task["description"],
-            due_date=datetime.fromisoformat(
-                task["due_date"]) if not task["due_date"] == None else None,
-            start_time=datetime.fromisoformat(
-                task["start_time"]) if not task["start_time"] == None else None,
-            end_time=datetime.fromisoformat(
-                task["end_time"]) if not task["end_time"] == None else None,
+            due_date=parse_optional_datetime(task["due_date"]),
+            start_time=parse_optional_datetime(task["start_time"]),
+            end_time=parse_optional_datetime(task["end_time"]),
             # not null, "complete" or "incomplete" exclusively
             status=task["status"],
             is_recurring=task["is_recurring"],
-            created_at=datetime.fromisoformat(
-                task["created_at"]) if not task["created_at"] == None else None,
-            completed_at=datetime.fromisoformat(
-                task["created_at"]) if not task["created_at"] == None else None,
+            created_at=parse_optional_datetime(task["created_at"]),
+            completed_at=parse_optional_datetime(task.get("completed_at")),
             recurring_days=recurring_days.get(task["id"], []) if task["is_recurring"] else []
         )
         for task in raw_tasks
@@ -679,6 +823,11 @@ def get_homepage_data(current_user: dict = Depends(get_current_user)):
             share_results=friend["share_results"],
             share_other=friend["share_other"],
             share_all=friend["share_all"],
+            activity_summary=build_friend_activity_summary(
+                friend,
+                friend_tasks_by_user_id.get(friend["id"], []),
+                friend_categories_by_user_id.get(friend["id"], []),
+            ),
         )
         for friend in my_friends
     ]
