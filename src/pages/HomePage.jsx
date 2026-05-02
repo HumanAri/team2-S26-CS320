@@ -30,8 +30,24 @@ export default function HomePage() {
   const [friends, setFriends] = useState([]);
   const [friendRequests, setFriendRequests] = useState([]);
 
-  function handleAcceptFriendRequest(friend) {
+  async function handleAcceptFriendRequest(friend) {
     if (!friendRequests) return
+
+    const token = localStorage.getItem('token');
+
+    try {
+      const res = await fetch('http://localhost:8000/api/friends/accept', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({friend_user_id: friend.id})
+      });
+    } catch (err) {
+      console.log(err)
+    }
+    
 
     setFriends((currentFriends) => [
       friend,
@@ -212,17 +228,6 @@ export default function HomePage() {
     taskToUpdate.completed = true;
 
     console.log(JSON.stringify(taskToUpdate))
-
-    // {
-    //     category_id: selectedCategory.id,
-    //     title: taskName.trim(),
-    //     description: "",
-    //     due_date: dueDate,
-    //     start_time: startTimestamp,
-    //     end_time: endTimestamp,
-    //     is_recurring: selectedDays.length > 0,
-    //     recurrence_days: recurrenceDayNumbers
-    //   }
 
     try {
       const token = localStorage.getItem('token')

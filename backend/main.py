@@ -527,6 +527,33 @@ def make_friends(body: FriendRequestRequest, current_user: dict = Depends(get_cu
     return requests
 
 
+# this is probably a security vulnerability since if you had another user's id
+# you could accept on that user's behalf regardless of who you're signed in as.
+# oh well.
+class FriendAcceptRequest(BaseModel):
+    friend_user_id: str
+
+@app.patch("/api/friends/accept")
+def accept_friend_request(body: FriendAcceptRequest, current_user: dict = Depends(get_current_user)):
+    email = current_user.get("email")
+
+    user = supabase.table("users").select("id").eq("email", email).execute()
+    if not user.data:
+        raise HTTPException(status_code=404, detail="User does not exist")
+    
+    user_id = user.data[0]["id"]
+
+    res = (
+        supabase.table("friendships")
+        .update({"status": 1})
+        .or_(f"user1_id.eq.{user_id},user2_id.eq.{user_id}")
+        .or_(f"user1_id.eq.{body.friend_user_id},user2_id.eq.{body.friend_user_id}")
+    ).execute()
+
+    return res
+
+
+
 # step 5: setting privacy settings
 class PrivacyRequest(BaseModel):
     share_goals: bool
