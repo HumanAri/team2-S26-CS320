@@ -165,7 +165,7 @@ def get_me(current_user: dict = Depends(get_current_user)):
     google_id = current_user.get("google_id")
 
     query = supabase.table("users").select(
-        "google_id, email, email_verified, display_name, first_name, last_name, profile_picture"
+        "google_id, email, email_verified, display_name, first_name, last_name, profile_picture, share_goals, share_results, share_other, share_all"
     )
 
     if email:

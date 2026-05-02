@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { LogOut, Mail, Settings, User, X } from 'lucide-react'
 import PrivacySettingsModal from './PrivacySettingsModal'
 
-export default function ProfileModal({ open = false, onClose, profile, onLogout }) {
+export default function ProfileModal({ open = false, onClose, profile, onLogout, onPrivacySave }) {
   const [isPrivacySettingsOpen, setIsPrivacySettingsOpen] = useState(false)
 
   useEffect(() => {
@@ -89,7 +89,7 @@ export default function ProfileModal({ open = false, onClose, profile, onLogout 
               onClick={() => setIsPrivacySettingsOpen(true)}
             >
               <Settings size={17} aria-hidden="true" />
-              <span>Settings</span>
+              <span>Privacy Settings</span>
             </button>
             <button
               type="button"
@@ -106,6 +106,8 @@ export default function ProfileModal({ open = false, onClose, profile, onLogout 
       <PrivacySettingsModal
         open={isPrivacySettingsOpen}
         onClose={() => setIsPrivacySettingsOpen(false)}
+        profile={profile}
+        onSave={onPrivacySave}
       />
     </>
   )

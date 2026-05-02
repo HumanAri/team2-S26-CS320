@@ -15,17 +15,32 @@ const TOGGLES = [
   { key: 'share_all', label: 'Share all', desc: 'Turn everything on at once' },
 ]
 
+function getPrivacyFromProfile(profile) {
+  return {
+    share_goals: Boolean(profile?.share_goals),
+    share_results: Boolean(profile?.share_results),
+    share_other: Boolean(profile?.share_other),
+    share_all: Boolean(profile?.share_all),
+  }
+}
+
 export default function PrivacySettingsModal({
   open = false,
   onClose,
-  initialPrivacy = DEFAULT_PRIVACY,
+  profile,
   onSave,
 }) {
-  const [privacy, setPrivacy] = useState({ ...DEFAULT_PRIVACY, ...initialPrivacy })
+  const [privacy, setPrivacy] = useState({ ...DEFAULT_PRIVACY, ...getPrivacyFromProfile(profile) })
+  const [isSaving, setIsSaving] = useState(false)
+  const [error, setError] = useState('')
 
   useEffect(() => {
-    if (open) setPrivacy({ ...DEFAULT_PRIVACY, ...initialPrivacy })
-  }, [initialPrivacy, open])
+    if (open) {
+      setPrivacy({ ...DEFAULT_PRIVACY, ...getPrivacyFromProfile(profile) })
+      setError('')
+      setIsSaving(false)
+    }
+  }, [profile, open])
 
   useEffect(() => {
     if (!open) return undefined
@@ -59,9 +74,47 @@ export default function PrivacySettingsModal({
     })
   }
 
-  const handleSave = () => {
-    onSave?.(privacy)
-    onClose?.()
+  const handleSave = async () => {
+    const token = localStorage.getItem('token')
+
+    if (!token) {
+      setError('You need to be logged in to update privacy settings.')
+      return
+    }
+
+    setIsSaving(true)
+    setError('')
+
+    try {
+      const response = await fetch('http://localhost:8000/api/users/privacy', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(privacy),
+      })
+
+      if (!response.ok) {
+        let message = 'Could not update privacy settings.'
+        try {
+          const data = await response.json()
+          message = data.detail || message
+        } catch {
+          // Use the default message if the response body is not JSON.
+        }
+
+        setError(message)
+        return
+      }
+
+      onSave?.(privacy)
+      onClose?.()
+    } catch {
+      setError('Could not connect to server.')
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   return (
@@ -107,6 +160,7 @@ export default function PrivacySettingsModal({
                 type="button"
                 className={`toggle-switch ${privacy[key] ? 'on' : ''}`}
                 onClick={() => toggle(key)}
+                disabled={isSaving}
                 aria-pressed={privacy[key]}
                 aria-label={label}
               >
@@ -116,16 +170,24 @@ export default function PrivacySettingsModal({
           ))}
         </div>
 
+        {error && <p className="privacy-settings-error" role="alert">{error}</p>}
+
         <div className="privacy-settings-actions">
-          <button type="button" className="privacy-settings-button" onClick={() => onClose?.()}>
+          <button
+            type="button"
+            className="privacy-settings-button"
+            onClick={() => onClose?.()}
+            disabled={isSaving}
+          >
             Cancel
           </button>
           <button
             type="button"
             className="privacy-settings-button privacy-settings-button-primary"
             onClick={handleSave}
+            disabled={isSaving}
           >
-            Done
+            {isSaving ? 'Saving...' : 'Done'}
           </button>
         </div>
       </section>

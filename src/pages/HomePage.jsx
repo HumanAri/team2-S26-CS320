@@ -26,6 +26,10 @@ export default function HomePage() {
     first_name: '',
     last_name: '',
     profile_picture: '🙂',
+    share_goals: false,
+    share_results: false,
+    share_other: false,
+    share_all: false,
   })
 
   const [categories, setCategories] = useState([])
@@ -353,6 +357,12 @@ export default function HomePage() {
         open={isProfileModalOpen}
         onClose={() => setIsProfileModalOpen(false)}
         profile={profile}
+        onPrivacySave={(privacy) => {
+          setProfile((currentProfile) => ({
+            ...currentProfile,
+            ...privacy,
+          }))
+        }}
         onLogout={() => {
           localStorage.removeItem('token')
           localStorage.removeItem('semester_id')
