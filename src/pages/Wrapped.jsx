@@ -184,8 +184,8 @@ const ANIMALS = {
 //PILL label
 const PILL = {
   highlight: { modifier: "highlight", label: "Highlight" },
-  criticism: { modifier: "criticism",  label: "Criticism" },
-  insight: { modifier: "insight",    label: "Insight"   },
+  criticism: { modifier: "criticism", label: "Criticism" },
+  insight: { modifier: "insight", label: "Insight"   },
 };
 
 //Actual slides
@@ -227,7 +227,7 @@ function StatSlide({ type, rendered, onNext, onReset, isLast }) {
       <div className="wrapped-stat-sub">{rendered.sub}</div>
       <div className="wrapped-stat-caption">{rendered.caption}</div>
       {isLast
-        ? <button className="wrapped-btn" onClick={onReset}>Start over 🔄</button>
+        ? <button className="wrapped-btn" onClick={onReset}>Start over </button>
         : <button className="wrapped-btn" onClick={onNext}>Next →</button>
       }
     </div>
@@ -247,7 +247,7 @@ function SlideAnimal({ animal, onReset }) {
       <div className="wrapped-sub-title">{meta.name}</div>
       <div className="wrapped-stat-caption">{meta.caption}</div>
       <button className="wrapped-btn" onClick={onReset}>
-        Start over 🔄
+        Start over 
       </button>
     </div>
   );
