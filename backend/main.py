@@ -413,7 +413,7 @@ class UpdateTaskRequest(BaseModel):
     is_recurring: bool = False
     status: str
 
-@app.post("/api/update-task")
+@app.patch("/api/update-task")
 def set_task(body: UpdateTaskRequest, current_user: dict = Depends(get_current_user)):
     email = current_user.get("email")
 
@@ -428,6 +428,8 @@ def set_task(body: UpdateTaskRequest, current_user: dict = Depends(get_current_u
         .update(body.model_dump())
         .eq("id", body.id)
     ).execute()
+
+    return task
 
 
     

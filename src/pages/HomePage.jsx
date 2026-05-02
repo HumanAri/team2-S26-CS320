@@ -232,7 +232,7 @@ export default function HomePage() {
     try {
       const token = localStorage.getItem('token')
       const res = await fetch('http://localhost:8000/api/update-task', {
-      method: 'POST',
+      method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
