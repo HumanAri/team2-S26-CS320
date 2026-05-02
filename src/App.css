@@ -98,6 +98,25 @@ body::after {
   width: auto;
 }
 
+.home-brand-button {
+  position: fixed;
+  top: 1.5rem;
+  left: 1.75rem;
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.home-brand-button .brand {
+  position: static;
+  pointer-events: none;
+}
+
 /* ---------- Theme Toggle (top-right) ---------- */
 .theme-toggle {
   position: fixed;

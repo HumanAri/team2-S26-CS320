@@ -269,7 +269,14 @@ export default function HomePage() {
   return (
     <div className="home-page">
       <div className="home-top-bar">
-        <Brand/>
+        <button
+          type="button"
+          className="home-brand-button"
+          onClick={() => navigate('/')}
+          aria-label="Go to login"
+        >
+          <Brand />
+        </button>
         <div className="home-top-bar-buttons">
           <div className="home-pill-placeholder" aria-hidden="true" />
           <button
