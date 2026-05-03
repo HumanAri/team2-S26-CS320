@@ -200,7 +200,8 @@ export default function HomePage() {
               friendStub.share_goals,
               friendStub.share_results,
               friendStub.share_other,
-              friendStub.share_all
+              friendStub.share_all,
+              friendStub.activity_summary
             )
           }
 

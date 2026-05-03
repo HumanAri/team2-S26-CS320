@@ -29,6 +29,17 @@ class Task(BaseModel):
     recurring_days: list[int]
 
 
+class FriendActivitySummary(BaseModel):
+    completed_today: int | None = None
+    completed_this_week: int | None = None
+    upcoming_count: int | None = None
+    next_due_title: str | None = None
+    top_category: str | None = None
+    streak_days: int | None = None
+    last_completed_at: datetime | None = None
+    recently_active: bool | None = None
+
+
 class FriendStub(BaseModel):  # minimal friend info required for displaying card on homepage
     id: str
     email: str
@@ -39,3 +50,4 @@ class FriendStub(BaseModel):  # minimal friend info required for displaying card
     share_results: bool
     share_other: bool
     share_all: bool
+    activity_summary: FriendActivitySummary | None = None
