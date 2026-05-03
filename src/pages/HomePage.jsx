@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Brand from '../components/Brand'
 import FriendsWidget from '../components/FriendsWidget'
 import UpcomingTasksBar from '../components/UpcomingTasksBar'
@@ -12,6 +13,8 @@ import { Plus, FolderPlus } from 'lucide-react'
 import { Category, Task, Friend } from "../types/task.js"
 
 export default function HomePage() {
+  const navigate = useNavigate();
+
   const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false)
   const [isAddCategoryModalOpen, setIsAddCategoryModalOpen] = useState(false)
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false)
@@ -23,6 +26,10 @@ export default function HomePage() {
     first_name: '',
     last_name: '',
     profile_picture: '🙂',
+    share_goals: false,
+    share_results: false,
+    share_other: false,
+    share_all: false,
   })
 
   const [categories, setCategories] = useState([])
@@ -295,7 +302,14 @@ export default function HomePage() {
   return (
     <div className="home-page">
       <div className="home-top-bar">
-        <Brand/>
+        <button
+          type="button"
+          className="home-brand-button"
+          onClick={() => navigate('/')}
+          aria-label="Go to login"
+        >
+          <Brand />
+        </button>
         <div className="home-top-bar-buttons">
           <div className="home-pill-placeholder" aria-hidden="true" />
           <button
@@ -372,6 +386,17 @@ export default function HomePage() {
         open={isProfileModalOpen}
         onClose={() => setIsProfileModalOpen(false)}
         profile={profile}
+        onPrivacySave={(privacy) => {
+          setProfile((currentProfile) => ({
+            ...currentProfile,
+            ...privacy,
+          }))
+        }}
+        onLogout={() => {
+          localStorage.removeItem('token')
+          localStorage.removeItem('semester_id')
+          navigate('/')
+        }}
       />
 
       <AddFriendModal
