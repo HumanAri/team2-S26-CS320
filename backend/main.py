@@ -1130,7 +1130,7 @@ def get_animal(semester_id: str, current_user: dict = Depends(get_current_user))
 
     #Deadline dragon
     r = on_time_rate(tasks)
-    if r and r["on_time_rate_pct"] >= 95:
+    if r and r["on_time_rate"] >= 95:
         qualified.append("deadline_dragon")
 
     #Plan panda
