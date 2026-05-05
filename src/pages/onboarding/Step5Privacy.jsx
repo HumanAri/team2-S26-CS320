@@ -6,7 +6,7 @@ import { useOnboarding } from '../../context/OnboardingContext'
 const TOGGLES = [
   { key: 'share_goals',   label: 'Share goals with friends',   desc: 'Friends can see the tasks you set for yourself' },
   { key: 'share_results', label: 'Share results with friends', desc: 'Friends can see your completed tasks and progress' },
-  { key: 'share_other',   label: 'Other',                      desc: 'Share miscellaneous activity with friends' },
+  { key: 'share_wrapped',   label: 'Wrapped Only',                      desc: 'Share wrapped with friends' },
   { key: 'share_all',     label: 'Share all',                  desc: 'Turn everything on at once' },
 ]
 
@@ -18,10 +18,10 @@ export default function Step5Privacy() {
   const toggle = (key) => {
     if (key === 'share_all') {
       const next = !privacy.share_all
-      setPrivacy({ share_goals: next, share_results: next, share_other: next, share_all: next })
+      setPrivacy({ share_goals: next, share_results: next, share_wrapped: next, share_all: next })
     } else {
       const next = { ...privacy, [key]: !privacy[key] }
-      next.share_all = next.share_goals && next.share_results && next.share_other
+      next.share_all = next.share_goals && next.share_results && next.share_wrapped
       setPrivacy(next)
     }
   }
