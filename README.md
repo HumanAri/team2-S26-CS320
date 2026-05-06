@@ -34,15 +34,16 @@
   5. Open a browser and go to: http://localhost:5173
 
 
-Testing user: 
+## Testing Upcoming Tasks Sorting:
 
-email: d@umass.edu
+1. Open the app and navigate to Upcoming Tasks
+2. Create a few tasks with different start times and assign them to categories with different priorities
+3. Verify tasks are ordered by:
+     -   Start time (earliest first)
+     -  Category priority (High → Low) when start times match
+     -  
+Completed tasks should not appear in the list
 
-password: d
 
+<img width="2390" height="1466" alt="image" src="https://github.com/user-attachments/assets/d9aa9608-ac2d-4207-af91-f50917a73e40" />
 
-There is a user "d@umass.edu" in the database that you can search for and it will come up. 
-Search for an email that's not in the database and it will let you know it doesn't exist.
-(Either in the onboarding process or on the homepage)
-
-After successfully sending a friend request, in the database under the friends table there should be an entry with "status = 0" meaning 'pending'
