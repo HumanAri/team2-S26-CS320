@@ -1,6 +1,7 @@
-/** @typedef {import('../types/task').Task} Task */
-/** @typedef {import('../types/task').Category} Category */
-import { CalendarDays, Clock3 } from 'lucide-react';
+
+import { AlignEndHorizontal, CalendarDays, Clock3 } from 'lucide-react';
+import Skeleton from 'react-loading-skeleton'
+import 'react-loading-skeleton/dist/skeleton.css'
 
 function lightenHexColor(hexColor, amount = 0.8) {
   const normalized = hexColor?.trim();
@@ -35,7 +36,26 @@ export default function UpcomingTasksBar({ tasks = [], categories = [], onTaskCl
       </div>
 
       <div className="upcoming-tasks-list">
+        
         {sortedTasks.map((task) => {
+          if (task.id === "skeleton") {
+            const borderColor = "#d3d3d3";
+            const backgroundColor = lightenHexColor(borderColor, 0.8);
+            return (<button
+              key={task.id + crypto.randomUUID()}
+              type="button"
+              className={"upcoming-task-card is-complete"}
+              style={{ borderColor , backgroundColor }}
+              onClick={() => {}}
+            >
+
+              <Skeleton height={25} />
+              
+              <Skeleton count={1} />
+
+
+            </button>);
+          } else {
           const category = task.my_category(categories);
           const borderColor = category?.color || '#cfd5de';
           const backgroundColor = lightenHexColor(borderColor, task.completed ? 0.9 : 0.8);
@@ -78,6 +98,8 @@ export default function UpcomingTasksBar({ tasks = [], categories = [], onTaskCl
               </div>
             </button>
           );
+          }
+          
         })}
 
         {sortedTasks.length === 0 && <p className="upcoming-tasks-empty">No upcoming tasks yet.</p>}

@@ -32,8 +32,8 @@ export default function HomePage() {
     share_all: false,
   })
 
-  const [categories, setCategories] = useState([])
-  const [tasks, setTasks] = useState([])
+  const [categories, setCategories] = useState([]);
+  const [tasks, setTasks] = useState([new Task("skeleton")]);
   const [friends, setFriends] = useState([]);
   const [friendRequests, setFriendRequests] = useState([]);
 
