@@ -20,7 +20,6 @@ export class Task {
     due_date=null, 
     start_time=null, 
     end_time=null, 
-    priority=null, 
     recurring_days=[], 
     completed=false
   ) {
@@ -31,7 +30,6 @@ export class Task {
     this.due_date = (due_date === null) ? null : new Date(due_date);
     this.start_time = (start_time === null) ? null : new Date(start_time);
     this.end_time = (end_time === null) ? null : new Date(end_time);
-    this.priority = priority;
     this.recurring_days = recurring_days;
     this.completed = completed;
   }

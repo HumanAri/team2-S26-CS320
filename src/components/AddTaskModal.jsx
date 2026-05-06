@@ -3,7 +3,6 @@ import { CalendarDays, Clock3, Repeat2, Tag, X } from 'lucide-react'
 import { Task, Category } from '../types/task.js'
 
 const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-const PRIORITY_OPTIONS = [1, 2, 3]
 
 function formatDueDate(value) {
   if (!value) return ''
@@ -37,7 +36,6 @@ export default function AddTaskModal({ open = false, onClose, categories = [], o
   const [date, setDate] = useState('')
   const [startTime, setStartTime] = useState('')
   const [endTime, setEndTime] = useState('')
-  const [priority, setPriority] = useState(3)
   const [selectedDays, setSelectedDays] = useState([])
 
   const isSubmitDisabled = useMemo(
@@ -72,7 +70,6 @@ export default function AddTaskModal({ open = false, onClose, categories = [], o
     setDate('')
     setStartTime('')
     setEndTime('')
-    setPriority(3)
     setSelectedDays([])
   }
 
@@ -142,7 +139,6 @@ export default function AddTaskModal({ open = false, onClose, categories = [], o
         body.due_date,
         body.start_time,
         body.end_time,
-        priority,
         body.recurrence_days,
         false
       )
@@ -261,28 +257,6 @@ export default function AddTaskModal({ open = false, onClose, categories = [], o
                 />
               </div>
             </label>
-          </div>
-
-          <div className="add-task-modal-field">
-            <span className="add-task-modal-label">Priority</span>
-            <div className="add-task-modal-priority-row">
-              <span className="add-task-modal-priority-side-label">Highest</span>
-              <div className="add-task-modal-priority-group" role="radiogroup" aria-label="Task priority">
-                {PRIORITY_OPTIONS.map((option) => (
-                  <button
-                    key={option}
-                    type="button"
-                    role="radio"
-                    aria-checked={priority === option}
-                    className={`add-task-modal-priority-button${priority === option ? ' is-selected' : ''}`}
-                    onClick={() => setPriority(option)}
-                  >
-                    {option}
-                  </button>
-                ))}
-              </div>
-              <span className="add-task-modal-priority-side-label">Lowest</span>
-            </div>
           </div>
 
           <div className="add-task-modal-field">
