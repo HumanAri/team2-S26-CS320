@@ -47,10 +47,16 @@ const CATEGORY_COLORS = [
   { label: 'Citrus Leaf', value: '#c4db98' },
 ]
 
+const PRIORITY_OPTIONS = [
+  { label: 'High', value: 1 },
+  { label: 'Medium', value: 2 },
+  { label: 'Low', value: 3 },
+]
+
 export default function AddCategoryModal({ open = false, onClose, onAddCategory }) {
   const [categoryName, setCategoryName] = useState('')
   const [selectedColor, setSelectedColor] = useState(CATEGORY_COLORS[0].value)
-
+  const [priority, setPriority] = useState(2)
   const isSubmitDisabled = useMemo(() => !categoryName.trim(), [categoryName])
 
   useEffect(() => {
@@ -92,7 +98,7 @@ export default function AddCategoryModal({ open = false, onClose, onAddCategory 
       id: `cat-${Date.now()}`,
       name: categoryName.trim(),
       color: selectedColor,
-      priority: 3,
+      priority,
     })
 
     resetForm()
@@ -174,6 +180,23 @@ export default function AddCategoryModal({ open = false, onClose, onAddCategory 
                   aria-label={`Select ${color.label}`}
                   title={color.label}
                 />
+              ))}
+            </div>
+          </div>
+
+          <div className="add-category-modal-field">
+  <span className="add-category-modal-label">Priority</span>
+
+            <div className="add-category-modal-priority-row">
+              {PRIORITY_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  className={`add-task-modal-priority-button${priority === option.value ? ' is-selected' : ''}`}
+                  onClick={() => setPriority(option.value)}
+                >
+                  {option.label}
+                </button>
               ))}
             </div>
           </div>

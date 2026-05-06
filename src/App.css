@@ -2465,6 +2465,19 @@ input:focus { border-color: var(--input-focus); }
   padding-top: 0.25rem;
 }
 
+.add-category-modal-priority-row {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.add-category-modal .add-task-modal-priority-button {
+  width: 56px;
+  height: 56px;
+  font-size: 1rem;
+}
+
 .add-category-modal-action {
   min-width: 148px;
   border: 0;
