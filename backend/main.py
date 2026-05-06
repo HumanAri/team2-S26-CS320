@@ -1167,7 +1167,7 @@ def get_animal(semester_id: str, current_user: dict = Depends(get_current_user))
 
     #Motivated monkey
     r = productivity_trend(tasks, semester_id)
-    if r and r["second_half"] >= r["first_half"] * 1.5:
+    if r and r["second_half"] > r["first_half"] * 1.5:
         qualified.append("motivated_monkey")
 
     #Streak stallion
