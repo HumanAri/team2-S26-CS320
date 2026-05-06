@@ -23,10 +23,22 @@ function lightenHexColor(hexColor, amount = 0.8) {
 }
 
 export default function UpcomingTasksBar({ tasks = [], categories = [], onTaskClick }) {
-  const sortedTasks = [...tasks].sort((leftTask, rightTask) => {
-    if (Boolean(leftTask.completed) === Boolean(rightTask.completed)) return 0;
-    return leftTask.completed ? 1 : -1;
-  });
+  const sortedTasks = [...tasks]
+    .filter(task => !task.completed) // only show upcoming (incomplete) tasks
+    .sort((a, b) => {
+      // sort by start time (earliest first)
+      if (!a.start_time) return 1;
+      if (!b.start_time) return -1;
+
+      const startDiff = a.start_time - b.start_time;
+      if (startDiff !== 0) return startDiff;
+
+      // tie-breaker: category priority (1 = high, 3 = low)
+      const aPriority = a.my_category(categories)?.priority ?? 999;
+      const bPriority = b.my_category(categories)?.priority ?? 999;
+
+      return aPriority - bPriority;
+    });
 
   return (
     <section className="upcoming-tasks-bar">
@@ -39,7 +51,7 @@ export default function UpcomingTasksBar({ tasks = [], categories = [], onTaskCl
           const category = task.my_category(categories);
           const borderColor = category?.color || '#cfd5de';
           const backgroundColor = lightenHexColor(borderColor, task.completed ? 0.9 : 0.8);
-          const priority = task.priority ?? category?.priority ?? 'N/A';
+          const priority = category?.priority ?? 'N/A';
           return (
             <button
               key={task.id}
