@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import icon from '/src/logo.png'
 
 async function baseGet(path, token) {
@@ -214,7 +215,7 @@ function LoadingSlide() {
   );
 }
 
-function StatSlide({ type, rendered, onNext, onReset, isLast }) {
+function StatSlide({ type, rendered, onNext, onPrev, onReset, isLast }) {
   const pill = PILL[type];
   return (
     <div className="wrapped-slide">
@@ -226,15 +227,18 @@ function StatSlide({ type, rendered, onNext, onReset, isLast }) {
       <div className="wrapped-stat-number">{rendered.big}</div>
       <div className="wrapped-stat-sub">{rendered.sub}</div>
       <div className="wrapped-stat-caption">{rendered.caption}</div>
-      {isLast
-        ? <button className="wrapped-btn" onClick={onReset}>Start over </button>
-        : <button className="wrapped-btn" onClick={onNext}>Next →</button>
-      }
+      <div className="wrapped-btn-row">
+        {onPrev && <button className="wrapped-btn wrapped-btn--secondary" onClick={onPrev}>← Back</button>}
+        {isLast
+          ? <button className="wrapped-btn" onClick={onReset}>Start over</button>
+          : <button className="wrapped-btn" onClick={onNext}>Next →</button>
+        }
+      </div>
     </div>
   );
 }
 
-function SlideAnimal({ animal, onReset }) {
+function SlideAnimal({ animal, onReset, onPrev }) {
   const meta = ANIMALS[animal] ?? ANIMALS.calendar_cat;
   return (
     <div className="wrapped-slide">
@@ -246,9 +250,10 @@ function SlideAnimal({ animal, onReset }) {
       </div>
       <div className="wrapped-sub-title">{meta.name}</div>
       <div className="wrapped-stat-caption">{meta.caption}</div>
-      <button className="wrapped-btn" onClick={onReset}>
-        Start over 
-      </button>
+      <div className="wrapped-btn-row">
+        <button className="wrapped-btn wrapped-btn--secondary" onClick={onPrev}>← Back</button>
+        <button className="wrapped-btn" onClick={onReset}>Start over</button>
+      </div>
     </div>
   );
 }
@@ -316,6 +321,7 @@ function buildSlides(data) {
 export default function SemesterWrapped({ semesterId, token }) {
   const { data, loading } = useWrappedData(semesterId, token);
   const [current, setCurrent] = useState(0);
+  const navigate = useNavigate();
 
   const next  = () => setCurrent((c) => c + 1);
   const reset = () => setCurrent(0);
@@ -331,6 +337,7 @@ export default function SemesterWrapped({ semesterId, token }) {
   const slides = buildSlides(data);
   const totalSlides = 1 + slides.length;
   const isLast = current === totalSlides - 1;
+  const prev = () => setCurrent((c) => Math.max(0, c - 1));
 
   function renderCurrent() {
     if (current === 0) return <SlideIntro onNext={next} semesterName={data.semesterName}/>;
@@ -338,7 +345,7 @@ export default function SemesterWrapped({ semesterId, token }) {
     const slide = slides[current - 1];
 
     if (slide.type === "animal") {
-      return <SlideAnimal animal={slide.animal} onReset={reset} />;
+      return <SlideAnimal animal={slide.animal} onReset={reset} onPrev={prev} />;
     }
 
     return (
@@ -346,6 +353,7 @@ export default function SemesterWrapped({ semesterId, token }) {
         type={slide.type}
         rendered={slide.rendered}
         onNext={next}
+        onPrev={prev}
         onReset={reset}
         isLast={isLast}
       />
@@ -353,9 +361,12 @@ export default function SemesterWrapped({ semesterId, token }) {
   }
 
   return (
-    <div className="wrapped-app">
-      {renderCurrent()}
-      <div className="wrapped-nav-dots">
+      <div className="wrapped-app">
+        <button className="wrapped-home-btn" onClick={() => navigate('/home')}>
+          ← Home
+        </button>
+        {renderCurrent()}
+        <div className="wrapped-nav-dots">
         {Array.from({ length: totalSlides }).map((_, i) => (
           <button
             key={i}

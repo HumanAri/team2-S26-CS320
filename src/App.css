@@ -2625,3 +2625,31 @@ input:focus { border-color: var(--input-focus); }
   font-size: 1rem;
   font-weight: 600;
 }
+
+.wrapped-btn-row {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.wrapped-btn--secondary {
+  background: var(--input-bg);
+  color: var(--text-primary);
+}
+
+.wrapped-home-btn {
+  position: absolute;
+  top: 1.5rem;
+  left: 1.5rem;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  z-index: 10;
+}
+
+.wrapped-home-btn:hover {
+  color: var(--text-primary);
+}
