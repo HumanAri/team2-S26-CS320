@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Brand from '../components/Brand'
 import FriendsWidget from '../components/FriendsWidget'
@@ -14,6 +14,7 @@ import { Category, Task, Friend } from "../types/task.js"
 
 export default function HomePage() {
   const navigate = useNavigate();
+  const mainRowRef = useRef(null)
 
   const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false)
   const [isAddCategoryModalOpen, setIsAddCategoryModalOpen] = useState(false)
@@ -36,6 +37,61 @@ export default function HomePage() {
   const [tasks, setTasks] = useState([new Task("skeleton")]);
   const [friends, setFriends] = useState([]);
   const [friendRequests, setFriendRequests] = useState([]);
+  const [friendsPanelWidth, setFriendsPanelWidth] = useState(20)
+  const [isResizingMainRow, setIsResizingMainRow] = useState(false)
+
+  function clampFriendsPanelWidth(width) {
+    return Math.min(50, Math.max(20, width))
+  }
+
+  function updateFriendsPanelWidth(clientX) {
+    const row = mainRowRef.current
+    if (!row) return
+
+    const rect = row.getBoundingClientRect()
+    const nextWidth = ((rect.right - clientX) / rect.width) * 100
+    setFriendsPanelWidth(clampFriendsPanelWidth(nextWidth))
+  }
+
+  function handleMainResizePointerDown(event) {
+    event.preventDefault()
+    setIsResizingMainRow(true)
+    updateFriendsPanelWidth(event.clientX)
+  }
+
+  function handleMainResizeKeyDown(event) {
+    if (event.key === 'ArrowLeft') {
+      event.preventDefault()
+      setFriendsPanelWidth((currentWidth) => clampFriendsPanelWidth(currentWidth + 2))
+    }
+
+    if (event.key === 'ArrowRight') {
+      event.preventDefault()
+      setFriendsPanelWidth((currentWidth) => clampFriendsPanelWidth(currentWidth - 2))
+    }
+  }
+
+  useEffect(() => {
+    if (!isResizingMainRow) return undefined
+
+    function handlePointerMove(event) {
+      updateFriendsPanelWidth(event.clientX)
+    }
+
+    function handlePointerUp() {
+      setIsResizingMainRow(false)
+    }
+
+    document.body.classList.add('home-main-row-is-resizing')
+    window.addEventListener('pointermove', handlePointerMove)
+    window.addEventListener('pointerup', handlePointerUp)
+
+    return () => {
+      document.body.classList.remove('home-main-row-is-resizing')
+      window.removeEventListener('pointermove', handlePointerMove)
+      window.removeEventListener('pointerup', handlePointerUp)
+    }
+  }, [isResizingMainRow])
 
   async function handleAcceptFriendRequest(friend) {
     if (!friendRequests) return
@@ -342,10 +398,25 @@ export default function HomePage() {
         </button>
       </div>
 
-      <div className="home-main-row">
+      <div
+        ref={mainRowRef}
+        className="home-main-row"
+        style={{ '--home-friends-width': `${friendsPanelWidth}%` }}
+      >
         <div className="home-calendar-section">
           <CalendarWidget tasks={tasks} categories={categories} onTaskClick={handleSelectTask} />
         </div>
+        <button
+          type="button"
+          className="home-main-row-resizer"
+          aria-label="Resize friends panel"
+          aria-valuemin={20}
+          aria-valuemax={50}
+          aria-valuenow={Math.round(friendsPanelWidth)}
+          onPointerDown={handleMainResizePointerDown}
+          onKeyDown={handleMainResizeKeyDown}
+          role="slider"
+        />
         <div className="home-friends-section">
           <FriendsWidget
             friends={friends}

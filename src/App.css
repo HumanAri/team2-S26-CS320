@@ -893,8 +893,8 @@ input:focus { border-color: var(--input-focus); }
 .home-main-row {
   min-height: 0;
   display: grid;
-  grid-template-columns: 4fr 1fr;
-  gap: 1rem;
+  grid-template-columns: minmax(0, 1fr) 12px minmax(0, var(--home-friends-width, 20%));
+  gap: 0.5rem;
 }
 
 .home-calendar-section,
@@ -902,6 +902,44 @@ input:focus { border-color: var(--input-focus); }
 .home-upcoming-section {
   min-width: 0;
   min-height: 0;
+}
+
+.home-main-row-resizer {
+  align-self: stretch;
+  width: 12px;
+  min-height: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  cursor: col-resize;
+  position: relative;
+  touch-action: none;
+}
+
+.home-main-row-resizer::before {
+  content: "";
+  position: absolute;
+  inset: 0.75rem 3px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text-muted) 28%, transparent);
+  transition: background 120ms ease, transform 120ms ease;
+}
+
+.home-main-row-resizer:hover::before,
+.home-main-row-resizer:focus-visible::before {
+  background: var(--input-focus);
+  transform: scaleX(1.35);
+}
+
+.home-main-row-resizer:focus-visible {
+  outline: 2px solid var(--input-focus);
+  outline-offset: 3px;
+}
+
+.home-main-row-is-resizing,
+.home-main-row-is-resizing * {
+  cursor: col-resize;
+  user-select: none;
 }
 
 .calendar-widget {
