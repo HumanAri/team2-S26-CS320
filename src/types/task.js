@@ -46,11 +46,11 @@ export class Task {
   }
 
   start_time_string() {
-    return (this.start_time === null) ? "" : this.start_time.toLocaleTimeString();
+    const str = (this.start_time === null) ? "" : this.start_time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
 
   end_time_string() {
-    return (this.end_time === null) ? "" : this.end_time.toLocaleTimeString();
+    return (this.end_time === null) ? "" : this.end_time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
 
   my_category(categories_list) {

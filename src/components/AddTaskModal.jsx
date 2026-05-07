@@ -134,14 +134,16 @@ export default function AddTaskModal({ open = false, onClose, categories = [], o
         return
       }
 
+      const savedTask = await res.json()
+
       const new_task = new Task(
-        crypto.randomUUID(),
-        body.title,
-        body.description,
-        body.category_id,
-        body.due_date,
-        body.start_time,
-        body.end_time,
+        savedTask.id,
+        savedTask.title,
+        savedTask.description,
+        savedTask.category_id,
+        savedTask.due_date,
+        savedTask.start_time,
+        savedTask.end_time,
         priority,
         body.recurrence_days,
         false
