@@ -1296,6 +1296,10 @@ input:focus { border-color: var(--input-focus); }
   grid-template-columns: 48px 1fr auto;
 }
 
+.friends-widget-card-loading {
+  opacity: 0.68;
+}
+
 .friends-widget-avatar {
   width: 48px;
   height: 48px;
@@ -1307,8 +1311,16 @@ input:focus { border-color: var(--input-focus); }
   font-size: 1.5rem;
 }
 
+.friends-widget-avatar-loading {
+  overflow: hidden;
+}
+
 .friends-widget-card-body {
   min-width: 0;
+}
+
+.friends-widget-skeleton-line {
+  margin-top: 0.35rem;
 }
 
 .friends-widget-request-actions {

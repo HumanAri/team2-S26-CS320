@@ -34,8 +34,20 @@ export default function HomePage() {
   })
 
   const [categories, setCategories] = useState([]);
-  const [tasks, setTasks] = useState([new Task("skeleton")]);
-  const [friends, setFriends] = useState([]);
+  const [tasks, setTasks] = useState([
+    new Task("skeleton"),
+    new Task("skeleton"),
+    new Task("skeleton"),
+    new Task("skeleton"),
+    new Task("skeleton"),
+    new Task("skeleton"),
+  ]);
+  const [friends, setFriends] = useState([
+    new Friend("skeleton"),
+    new Friend("skeleton"),
+    new Friend("skeleton"),
+    new Friend("skeleton"),
+  ]);
   const [friendRequests, setFriendRequests] = useState([]);
   const [friendsPanelWidth, setFriendsPanelWidth] = useState(20)
   const [isResizingMainRow, setIsResizingMainRow] = useState(false)

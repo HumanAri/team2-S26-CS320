@@ -1,5 +1,7 @@
 
 import { Check, Plus, X } from 'lucide-react'
+import Skeleton from 'react-loading-skeleton'
+import 'react-loading-skeleton/dist/skeleton.css'
 
 export default function FriendsWidget({
     friends,
@@ -56,7 +58,22 @@ export default function FriendsWidget({
                         )
                     ),
 
-                    ...friends.map((friend) => (
+                    ...friends.map((friend, index) => {
+                        if (friend.id === "skeleton") {
+                            return (
+                                <article key={`${friend.id}-${index}`} className="friends-widget-card friends-widget-card-loading">
+                                    <div className="friends-widget-avatar friends-widget-avatar-loading" aria-hidden="true">
+                                        <Skeleton circle width={34} height={34} />
+                                    </div>
+                                    <div className="friends-widget-card-body">
+                                        <Skeleton height={18} />
+                                        <Skeleton className="friends-widget-skeleton-line" height={14} width="82%" />
+                                    </div>
+                                </article>
+                            )
+                        }
+
+                        return (
                         <article key={friend.id} className="friends-widget-card">
                             <div className="friends-widget-avatar" aria-hidden="true">
                                 {friend.profile_emoji}
@@ -68,7 +85,8 @@ export default function FriendsWidget({
                                 </p>
                             </div>
                         </article>
-                    ))]
+                        )
+                    })]
                 }
             </div>
         </section>
