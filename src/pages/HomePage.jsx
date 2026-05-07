@@ -185,7 +185,6 @@ export default function HomePage() {
               task.due_date,
               task.start_time,
               task.end_time,
-              task.priority,
               task.recurring_days,
               task.status == "incomplete" ? false : true
             )
