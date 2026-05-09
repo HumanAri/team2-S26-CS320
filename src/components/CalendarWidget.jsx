@@ -154,34 +154,51 @@ export default function CalendarWidget({ tasks = [], categories = [], onTaskClic
   )
 
   const scheduledTasks = useMemo(
-    () =>
-      tasks
-        .map((task) => {
+      () =>
+        tasks.flatMap((task) => {
           const category = getTaskCategory(task, categories)
           const startMinutes = parseTimeToMinutes(task.start_time || task.startTime)
-          if (startMinutes === null) return null
-
-          const dueDate = parseDateValue(task.due_date || task.dueDate)
-          const dayIndexFromDate = dueDate ? days.findIndex((day) => sameDay(day.date, dueDate)) : -1
-          const dayIndex = dayIndexFromDate >= 0
-            ? dayIndexFromDate
-            : days.findIndex((day, index) => isTaskOnRecurringDay(task, index))
-
-          if (dayIndex < 0) return null
+          if (startMinutes === null) return []
 
           const durationMinutes = getTaskDurationMinutes(task)
-          return {
+          const endMinutes = startMinutes + durationMinutes
+          const dueDate = parseDateValue(task.due_date || task.dueDate)
+
+          const recurringDays = task.recurring_days || task.recurringDays
+          const isRecurring = Array.isArray(recurringDays) && recurringDays.length > 0
+
+          // if recurring, create an entry for every matching day in the week
+          if (isRecurring) {
+            return days
+              .map((day, index) => {
+                if (!isTaskOnRecurringDay(task, index)) return null
+                return {
+                  task,
+                  category,
+                  dayIndex: index,
+                  startMinutes,
+                  endMinutes,
+                  durationMinutes,
+                }
+              })
+              .filter(Boolean)
+          }
+
+          // non-recurring: place on the due date
+          const dayIndexFromDate = dueDate ? days.findIndex((day) => sameDay(day.date, dueDate)) : -1
+          if (dayIndexFromDate < 0) return []
+
+          return [{
             task,
             category,
-            dayIndex,
+            dayIndex: dayIndexFromDate,
             startMinutes,
-            endMinutes: startMinutes + durationMinutes,
+            endMinutes,
             durationMinutes,
-          }
-        })
-        .filter(Boolean),
-    [categories, days, tasks]
-  )
+          }]
+        }),
+      [categories, days, tasks]
+    )
 
   const currentTimePosition = useMemo(() => {
     if (!isCurrentWeek) return null
