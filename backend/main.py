@@ -357,6 +357,52 @@ def create_task(body: TaskRequest, current_user: dict = Depends(get_current_user
 
     user_id = user.data[0]["id"]
 
+    # if recurring, create a separate task for each selected day
+    if body.is_recurring and body.recurrence_days:
+        base_date = datetime.fromisoformat(body.due_date) if body.due_date else datetime.now()
+        base_day_of_week = base_date.weekday()  # Monday=0, Sunday=6
+
+        # convert our day format (0=Sun) to Python's (0=Mon)
+        def to_python_weekday(day):
+            return (day - 1) % 7  # 0=Sun->6, 1=Mon->0, 2=Tue->1, etc.
+
+        created_tasks = []
+        for day in body.recurrence_days:
+            python_day = to_python_weekday(day)
+            # calculate the offset from the base date's day of week
+            day_offset = python_day - base_day_of_week
+            target_date = base_date + timedelta(days=day_offset)
+
+            # adjust start_time and end_time to the target date
+            task_due = target_date.strftime("%Y-%m-%dT23:59:00")
+            task_start = None
+            task_end = None
+
+            if body.start_time:
+                start_parsed = datetime.fromisoformat(body.start_time)
+                task_start = target_date.strftime(f"%Y-%m-%dT{start_parsed.strftime('%H:%M:%S')}")
+
+            if body.end_time:
+                end_parsed = datetime.fromisoformat(body.end_time)
+                task_end = target_date.strftime(f"%Y-%m-%dT{end_parsed.strftime('%H:%M:%S')}")
+
+            task = supabase.table("tasks").insert({
+                "user_id": user_id,
+                "category_id": body.category_id,
+                "title": body.title,
+                "description": body.description,
+                "due_date": task_due,
+                "start_time": task_start,
+                "end_time": task_end,
+                "status": "incomplete",
+                "is_recurring": True,
+            }).execute()
+
+            created_tasks.append(task.data[0])
+
+        return created_tasks
+
+    # non-recurring: create a single task
     task = supabase.table("tasks").insert({
         "user_id": user_id,
         "category_id": body.category_id,
@@ -366,17 +412,8 @@ def create_task(body: TaskRequest, current_user: dict = Depends(get_current_user
         "start_time": body.start_time if body.start_time != "" else None,
         "end_time": body.end_time if body.end_time != "" else None,
         "status": "incomplete",
-        "is_recurring": body.is_recurring,
+        "is_recurring": False,
     }).execute()
-
-    task_id = task.data[0]["id"]
-
-    # if the task is recurring, insert the recurrence days in to the recurrence_days table
-    if body.is_recurring and body.recurrence_days:
-        rows = []
-        for day in body.recurrence_days:
-            rows.append({"task_id": task_id, "day_of_week": day})
-        supabase.table("recurrence_days").insert(rows).execute()
 
     return task.data[0]
 

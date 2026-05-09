@@ -87,72 +87,51 @@ export default function AddTaskModal({ open = false, onClose, categories = [], o
   }
 
   async function handleSubmit(event) {
-    event.preventDefault()
-    if (isSubmitDisabled) return
+      event.preventDefault()
+      if (isSubmitDisabled) return
 
-    try {
-      const token = localStorage.getItem('token')
+      try {
+        const token = localStorage.getItem('token')
 
-      // find the category object to get its id
-      const selectedCategory = categories.find(c => c.name === category)
-      if (!selectedCategory) return
+        const selectedCategory = categories.find(c => c.name === category)
+        if (!selectedCategory) return
 
-      // map day names to day numbers (0=Sun, 1=Mon, etc.)
-      const dayMap = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }
-      const recurrenceDayNumbers = selectedDays.map(d => dayMap[d])
+        const dayMap = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }
+        const recurrenceDayNumbers = selectedDays.map(d => dayMap[d])
 
-      // build timestamps from date + time inputs
-      const dueDate = date ? `${date}T23:59:00` : ""
-      const startTimestamp = date && startTime ? `${date}T${startTime}:00` : ""
-      const endTimestamp = date && endTime ? `${date}T${endTime}:00` : ""
+        const dueDate = date ? `${date}T23:59:00` : ""
+        const startTimestamp = date && startTime ? `${date}T${startTime}:00` : ""
+        const endTimestamp = date && endTime ? `${date}T${endTime}:00` : ""
 
-      const body = {
-        category_id: selectedCategory.id,
-        title: taskName.trim(),
-        description: "",
-        due_date: dueDate,
-        start_time: startTimestamp,
-        end_time: endTimestamp,
-        is_recurring: selectedDays.length > 0,
-        recurrence_days: recurrenceDayNumbers
+        const res = await fetch('http://localhost:8000/api/tasks', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            category_id: selectedCategory.id,
+            title: taskName.trim(),
+            description: "",
+            due_date: dueDate,
+            start_time: startTimestamp,
+            end_time: endTimestamp,
+            is_recurring: selectedDays.length > 0,
+            recurrence_days: recurrenceDayNumbers,
+          }),
+        })
+
+        if (!res.ok) {
+          console.error('Failed to create task')
+          return
+        }
+
+        window.location.reload()
+      } catch {
+        console.error('Could not reach server')
       }
-
-      const res = await fetch('http://localhost:8000/api/tasks', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(body),
-      })
-
-      if (!res.ok) {
-        console.error('Failed to create task')
-        return
-      }
-
-      const new_task = new Task(
-        crypto.randomUUID(),
-        body.title,
-        body.description,
-        body.category_id,
-        body.due_date,
-        body.start_time,
-        body.end_time,
-        body.recurrence_days,
-        false
-      )
-
-      // still update local state so it shows up immediately
-      onAddTask(new_task)
-
-      resetForm()
-      onClose()
-    } catch {
-      console.error('Could not reach server')
     }
-  }
-
+      
   if (!open) return null
 
   return (
