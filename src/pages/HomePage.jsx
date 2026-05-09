@@ -357,7 +357,14 @@ export default function HomePage() {
       </div>
 
       <div className="home-upcoming-section">
-        <UpcomingTasksBar tasks={tasks.filter(t => !t.completed)} categories={categories} onTaskClick={handleSelectTask} />
+        <UpcomingTasksBar tasks={tasks.filter(t => {
+            if (t.completed) return false
+            const dueDate = t.due_date ? new Date(t.due_date) : null
+            if (!dueDate) return true
+            const now = new Date()
+            const oneWeekOut = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
+            return dueDate >= now && dueDate <= oneWeekOut
+          })} categories={categories} onTaskClick={handleSelectTask} />
       </div>
 
       <AddTaskModal
