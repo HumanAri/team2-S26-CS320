@@ -301,7 +301,9 @@ export default function CalendarWidget({ tasks = [], categories = [], onTaskClic
                         const { task, category, startMinutes, endMinutes, durationMinutes } = scheduledTask
                         const accentColor = category?.color || '#cfd5de'
                         const top = ((startMinutes - START_HOUR * 60) / 60) * SLOT_HEIGHT
-                        const height = Math.max((durationMinutes / 60) * SLOT_HEIGHT - 6, 48)
+                        const maxEndMinutes = (END_HOUR + 1) * 60
+                        const clampedDuration = Math.min(durationMinutes, maxEndMinutes - startMinutes)
+                        const height = Math.max((clampedDuration / 60) * SLOT_HEIGHT - 6, 48)
 
                         return (
                           <button
