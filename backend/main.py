@@ -345,6 +345,7 @@ class TaskRequest(BaseModel):
     end_time: Union[str, None]
     is_recurring: bool = False
     recurrence_days: list[int] = []
+    semester_id: Union[str, None] = None
 
 @app.post("/api/tasks")
 def create_task(body: TaskRequest, current_user: dict = Depends(get_current_user)):
@@ -359,48 +360,66 @@ def create_task(body: TaskRequest, current_user: dict = Depends(get_current_user
 
     # if recurring, create a separate task for each selected day
     if body.is_recurring and body.recurrence_days:
-        base_date = datetime.fromisoformat(body.due_date) if body.due_date else datetime.now()
-        base_day_of_week = base_date.weekday()  # Monday=0, Sunday=6
+            base_date = datetime.fromisoformat(body.due_date) if body.due_date else datetime.now()
 
-        # convert our day format (0=Sun) to Python's (0=Mon)
-        def to_python_weekday(day):
-            return (day - 1) % 7  # 0=Sun->6, 1=Mon->0, 2=Tue->1, etc.
+            # get the semester end date
+            if body.semester_id:
+                sem = supabase.table("semesters").select("end_date").eq("id", body.semester_id).execute()
+                if sem.data:
+                    semester_end = datetime.fromisoformat(sem.data[0]["end_date"])
+                else:
+                    semester_end = base_date + timedelta(weeks=16)
+            else:
+                semester_end = base_date + timedelta(weeks=16)
 
-        created_tasks = []
-        for day in body.recurrence_days:
-            python_day = to_python_weekday(day)
-            # calculate the offset from the base date's day of week
-            day_offset = python_day - base_day_of_week
-            target_date = base_date + timedelta(days=day_offset)
+            # find the start of the week containing base_date (Sunday)
+            week_start = base_date - timedelta(days=base_date.weekday() + 1)  # Python weekday: Mon=0
+            if week_start > base_date:
+                week_start -= timedelta(days=7)
 
-            # adjust start_time and end_time to the target date
-            task_due = target_date.strftime("%Y-%m-%dT23:59:00")
-            task_start = None
-            task_end = None
+            # convert our day format (0=Sun) to offset from Sunday
+            created_tasks = []
+            current_week = week_start
 
-            if body.start_time:
-                start_parsed = datetime.fromisoformat(body.start_time)
-                task_start = target_date.strftime(f"%Y-%m-%dT{start_parsed.strftime('%H:%M:%S')}")
+            while current_week <= semester_end:
+                for day in body.recurrence_days:
+                    target_date = current_week + timedelta(days=day)
 
-            if body.end_time:
-                end_parsed = datetime.fromisoformat(body.end_time)
-                task_end = target_date.strftime(f"%Y-%m-%dT{end_parsed.strftime('%H:%M:%S')}")
+                    # skip dates before the original due date or after semester end
+                    if target_date < base_date.replace(hour=0, minute=0, second=0):
+                        continue
+                    if target_date > semester_end:
+                        continue
 
-            task = supabase.table("tasks").insert({
-                "user_id": user_id,
-                "category_id": body.category_id,
-                "title": body.title,
-                "description": body.description,
-                "due_date": task_due,
-                "start_time": task_start,
-                "end_time": task_end,
-                "status": "incomplete",
-                "is_recurring": True,
-            }).execute()
+                    task_due = target_date.strftime("%Y-%m-%dT23:59:00")
+                    task_start = None
+                    task_end = None
 
-            created_tasks.append(task.data[0])
+                    if body.start_time:
+                        start_parsed = datetime.fromisoformat(body.start_time)
+                        task_start = target_date.strftime(f"%Y-%m-%dT{start_parsed.strftime('%H:%M:%S')}")
 
-        return created_tasks
+                    if body.end_time:
+                        end_parsed = datetime.fromisoformat(body.end_time)
+                        task_end = target_date.strftime(f"%Y-%m-%dT{end_parsed.strftime('%H:%M:%S')}")
+
+                    task = supabase.table("tasks").insert({
+                        "user_id": user_id,
+                        "category_id": body.category_id,
+                        "title": body.title,
+                        "description": body.description,
+                        "due_date": task_due,
+                        "start_time": task_start,
+                        "end_time": task_end,
+                        "status": "incomplete",
+                        "is_recurring": True,
+                    }).execute()
+
+                    created_tasks.append(task.data[0])
+
+                current_week += timedelta(days=7)
+
+            return created_tasks
 
     # non-recurring: create a single task
     task = supabase.table("tasks").insert({

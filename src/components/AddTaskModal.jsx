@@ -118,6 +118,7 @@ export default function AddTaskModal({ open = false, onClose, categories = [], o
             end_time: endTimestamp,
             is_recurring: selectedDays.length > 0,
             recurrence_days: recurrenceDayNumbers,
+            semester_id: localStorage.getItem('semester_id'),
           }),
         })
 
