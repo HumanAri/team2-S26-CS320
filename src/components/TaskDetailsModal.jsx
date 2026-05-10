@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { Check, Tag, Trash2, X } from 'lucide-react'
 
-export default function TaskDetailsModal({ open = false, task, categories, onClose, onDelete, onMarkDone }) {
+export default function TaskDetailsModal({ open = false, task, occurrence = null, categories, onClose, onDelete, onMarkDone }) {
 
   useEffect(() => {
     if (!open) return undefined
@@ -25,6 +25,10 @@ export default function TaskDetailsModal({ open = false, task, categories, onClo
   }, [open])
 
   if (!open || !task) return null
+
+  const category = task.my_category(categories)
+  const isComplete = occurrence ? occurrence.status === 'complete' : Boolean(task.completed)
+  const isRecurring = (task.recurrence_occurrences || []).length > 0
 
   return (
     <div
@@ -58,7 +62,7 @@ export default function TaskDetailsModal({ open = false, task, categories, onClo
           <span className="task-details-modal-label">Category</span>
           <div className="task-details-modal-category">
             <Tag size={16} aria-hidden="true" />
-            <span>{task.my_category(categories).name || 'Uncategorized'}</span>
+            <span>{category?.name || 'Uncategorized'}</span>
           </div>
         </div>
 
@@ -66,20 +70,30 @@ export default function TaskDetailsModal({ open = false, task, categories, onClo
           <button
             type="button"
             className="task-details-modal-action task-details-modal-action-delete"
-            onClick={() => onDelete?.(task)}
+            onClick={() => onDelete?.(task, occurrence)}
           >
             <Trash2 size={16} aria-hidden="true" />
-            <span>Delete</span>
+            <span>{occurrence ? 'Delete Occurrence' : 'Delete'}</span>
           </button>
           <button
             type="button"
             className="task-details-modal-action task-details-modal-action-done"
-            onClick={() => onMarkDone?.(task)}
-            disabled={Boolean(task.completed)}
+            onClick={() => onMarkDone?.(task, occurrence)}
+            disabled={isComplete}
           >
             <Check size={16} aria-hidden="true" />
-            <span>{task.completed ? 'Completed' : 'Mark Done'}</span>
+            <span>{isComplete ? 'Completed' : 'Mark Done'}</span>
           </button>
+          {isRecurring && (
+            <button
+              type="button"
+              className="task-details-modal-action task-details-modal-action-delete-series"
+              onClick={() => onDelete?.(task, null)}
+            >
+              <Trash2 size={16} aria-hidden="true" />
+              <span>Delete Series</span>
+            </button>
+          )}
         </div>
       </section>
     </div>

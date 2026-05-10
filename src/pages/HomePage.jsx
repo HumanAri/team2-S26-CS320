@@ -25,6 +25,7 @@ export default function HomePage() {
   const [isWrappedCutsceneOpen, setIsWrappedCutsceneOpen] = useState(false)
   const [hasWrappedAccess, setHasWrappedAccess] = useState(false)
   const [selectedTask, setSelectedTask] = useState(null)
+  const [selectedOccurrence, setSelectedOccurrence] = useState(null)
   const [profile, setProfile] = useState({
     email: '',
     display_name: '',
@@ -199,10 +200,17 @@ export default function HomePage() {
 
   function handleSelectTask(task) {
     setSelectedTask(task)
+    setSelectedOccurrence(null)
+  }
+
+  function handleSelectTaskOccurrence(task, occurrence) {
+    setSelectedTask(task)
+    setSelectedOccurrence(occurrence || null)
   }
 
   function handleCloseTaskModal() {
     setSelectedTask(null)
+    setSelectedOccurrence(null)
   }
 
   function handleCompleteWrappedCutscene() {
@@ -278,7 +286,8 @@ export default function HomePage() {
               task.start_time,
               task.end_time,
               task.recurring_days,
-              task.status === "incomplete" ? false : true
+              task.status === "incomplete" ? false : true,
+              task.recurrence_occurrences || []
             )
           });
 
@@ -325,7 +334,61 @@ export default function HomePage() {
   }, [])
 
 
-  async function handleDeleteTask(taskToDelete) {
+  function updateTaskOccurrence(taskToUpdate, updatedOccurrence) {
+    setTasks((currentTasks) =>
+      currentTasks.map((task) => {
+        if (task.id !== taskToUpdate.id) return task
+
+        return new Task(
+          task.id,
+          task.title,
+          task.description,
+          task.category_id,
+          task.due_date,
+          task.start_time,
+          task.end_time,
+          task.recurring_days,
+          task.completed,
+          task.recurrence_occurrences.map((occurrence) =>
+            (occurrence.id && updatedOccurrence.id && occurrence.id === updatedOccurrence.id) ||
+            occurrence.occurrence_date === updatedOccurrence.occurrence_date
+              ? updatedOccurrence
+              : occurrence
+          )
+        )
+      })
+    )
+  }
+
+  async function handleDeleteTask(taskToDelete, occurrenceToDelete = null) {
+      if (occurrenceToDelete) {
+        try {
+          const token = localStorage.getItem('token')
+          const res = await fetch(`http://localhost:8000/api/tasks/${taskToDelete.id}/recurrence-days/${occurrenceToDelete.occurrence_date}`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ status: 'deleted' }),
+          })
+
+          if (!res.ok) {
+            console.error('Failed to delete recurring occurrence')
+            return
+          }
+
+          const updatedOccurrence = await res.json()
+          updateTaskOccurrence(taskToDelete, updatedOccurrence)
+          setSelectedTask(null)
+          setSelectedOccurrence(null)
+        } catch {
+          console.error('Could not reach server')
+        }
+
+        return
+      }
+
       try {
         const token = localStorage.getItem('token')
         const res = await fetch(`http://localhost:8000/api/tasks/${taskToDelete.id}`, {
@@ -344,9 +407,37 @@ export default function HomePage() {
 
       setTasks((currentTasks) => currentTasks.filter((task) => task.id !== taskToDelete.id))
       setSelectedTask(null)
+      setSelectedOccurrence(null)
     }
 
-  async function handleMarkTaskDone(taskToUpdate) {
+  async function handleMarkTaskDone(taskToUpdate, occurrenceToUpdate = null) {
+    if (occurrenceToUpdate) {
+      try {
+        const token = localStorage.getItem('token')
+        const res = await fetch(`http://localhost:8000/api/tasks/${taskToUpdate.id}/recurrence-days/${occurrenceToUpdate.occurrence_date}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ status: 'complete' })
+        })
+
+        if (!res.ok) {
+          console.error('Failed to mark recurring occurrence done')
+          return
+        }
+
+        const updatedOccurrence = await res.json()
+        updateTaskOccurrence(taskToUpdate, updatedOccurrence)
+        setSelectedOccurrence(updatedOccurrence)
+      } catch (err) {
+        console.log(err)
+        console.log("post failed")
+      }
+
+      return
+    }
 
     taskToUpdate.completed = true;
 
@@ -474,7 +565,7 @@ export default function HomePage() {
         style={{ '--home-friends-width': `${friendsPanelWidth}%` }}
       >
         <div className="home-calendar-section">
-          <CalendarWidget tasks={tasks} categories={categories} onTaskClick={handleSelectTask} />
+          <CalendarWidget tasks={tasks} categories={categories} onTaskClick={handleSelectTaskOccurrence} />
         </div>
         <button
           type="button"
@@ -499,7 +590,7 @@ export default function HomePage() {
       </div>
 
       <div className="home-upcoming-section">
-        <UpcomingTasksBar tasks={tasks.filter(isTaskDueSoon)} categories={categories} onTaskClick={handleSelectTask} />
+        <UpcomingTasksBar tasks={tasks} categories={categories} onTaskClick={handleSelectTaskOccurrence} />
       </div>
 
       <AddTaskModal
@@ -518,6 +609,7 @@ export default function HomePage() {
       <TaskDetailsModal
         open={Boolean(selectedTask)}
         task={selectedTask}
+        occurrence={selectedOccurrence}
         categories={categories}
         onClose={handleCloseTaskModal}
         onDelete={handleDeleteTask}

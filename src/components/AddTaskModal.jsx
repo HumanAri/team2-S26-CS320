@@ -14,7 +14,8 @@ function taskFromApiTask(savedTask, fallbackRecurringDays = []) {
     savedTask.start_time,
     savedTask.end_time,
     savedTask.recurrence_days ?? savedTask.recurring_days ?? fallbackRecurringDays,
-    savedTask.status === 'complete'
+    savedTask.status === 'complete',
+    savedTask.recurrence_occurrences ?? []
   )
 }
 

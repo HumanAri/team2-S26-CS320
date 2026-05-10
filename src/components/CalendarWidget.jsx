@@ -1,6 +1,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { CalendarDays, ChevronLeft, ChevronRight, Clock3 } from 'lucide-react'
+import { toDateKey } from '../types/task.js'
 
 /** @typedef {import('../types/task').Task} Task */
 /** @typedef {import('../types/task').Category} Category */
@@ -15,6 +16,17 @@ function parseDateValue(dateValue) {
   if (!dateValue) return null
   if (dateValue instanceof Date) {
     return Number.isNaN(dateValue.getTime()) ? null : dateValue
+  }
+
+  const isoDateMatch = String(dateValue).match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  if (isoDateMatch) {
+    const date = new Date(
+      Number.parseInt(isoDateMatch[1], 10),
+      Number.parseInt(isoDateMatch[2], 10) - 1,
+      Number.parseInt(isoDateMatch[3], 10)
+    )
+    date.setHours(0, 0, 0, 0)
+    return date
   }
 
   const parsedDate = new Date(dateValue)
@@ -164,18 +176,29 @@ export default function CalendarWidget({ tasks = [], categories = [], onTaskClic
           const endMinutes = startMinutes + durationMinutes
           const dueDate = parseDateValue(task.due_date || task.dueDate)
 
-          const recurringDays = task.recurring_days || task.recurringDays
-          const isRecurring = Array.isArray(recurringDays) && recurringDays.length > 0
+          const recurrenceOccurrences = task.recurrence_occurrences || task.recurrenceOccurrences || []
+          const isRecurring = Array.isArray(recurrenceOccurrences) && recurrenceOccurrences.length > 0
 
-          // if recurring, create an entry for every matching day in the week
+          // if recurring, render concrete occurrence rows from recurrence_days
           if (isRecurring) {
-            return days
-              .map((day, index) => {
-                if (!isTaskOnRecurringDay(task, index)) return null
+            return recurrenceOccurrences
+              .map((occurrence) => {
+                if (occurrence.status === 'deleted') return null
+
+                const occurrenceDate = parseDateValue(occurrence.occurrence_date)
+                const dayIndex = occurrenceDate
+                  ? days.findIndex((day) => sameDay(day.date, occurrenceDate))
+                  : -1
+
+                if (dayIndex < 0) return null
+
                 return {
                   task,
+                  occurrence,
                   category,
-                  dayIndex: index,
+                  dayIndex,
+                  occurrenceDate: toDateKey(occurrenceDate),
+                  isComplete: occurrence.status === 'complete',
                   startMinutes,
                   endMinutes,
                   durationMinutes,
@@ -192,6 +215,9 @@ export default function CalendarWidget({ tasks = [], categories = [], onTaskClic
             task,
             category,
             dayIndex: dayIndexFromDate,
+            occurrence: null,
+            occurrenceDate: null,
+            isComplete: task.completed,
             startMinutes,
             endMinutes,
             durationMinutes,
@@ -298,7 +324,7 @@ export default function CalendarWidget({ tasks = [], categories = [], onTaskClic
                     {scheduledTasks
                       .filter((scheduledTask) => scheduledTask.dayIndex === dayIndex)
                       .map((scheduledTask) => {
-                        const { task, category, startMinutes, endMinutes, durationMinutes } = scheduledTask
+                        const { task, occurrence, category, startMinutes, endMinutes, durationMinutes, isComplete } = scheduledTask
                         const accentColor = category?.color || '#cfd5de'
                         const top = ((startMinutes - START_HOUR * 60) / 60) * SLOT_HEIGHT
                         const maxEndMinutes = (END_HOUR + 1) * 60
@@ -307,16 +333,16 @@ export default function CalendarWidget({ tasks = [], categories = [], onTaskClic
 
                         return (
                           <button
-                            key={task.id}
+                            key={occurrence ? `${task.id}-${occurrence.occurrence_date}` : task.id}
                             type="button"
-                            className={`calendar-widget-task${task.completed ? ' is-complete' : ''}`}
+                            className={`calendar-widget-task${isComplete ? ' is-complete' : ''}`}
                             style={{
                               top: `${top}px`,
                               height: `${height}px`,
                               borderColor: accentColor,
                               backgroundColor: `color-mix(in srgb, ${accentColor} 18%, var(--card-bg) 82%)`,
                             }}
-                            onClick={() => onTaskClick?.(task)}
+                            onClick={() => onTaskClick?.(task, occurrence)}
                           >
                             <div
                               className="calendar-widget-task-accent"

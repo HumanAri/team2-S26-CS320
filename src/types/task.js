@@ -17,6 +17,16 @@ function toOptionalDate(value) {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
+export function toDateKey(value) {
+  const date = toOptionalDate(value);
+  if (!date) return "";
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 export class Task {
 
   constructor(
@@ -28,7 +38,8 @@ export class Task {
     start_time=null, 
     end_time=null, 
     recurring_days=[], 
-    completed=false
+    completed=false,
+    recurrence_occurrences=[]
   ) {
     this.id = id;
     this.title = title;
@@ -39,6 +50,7 @@ export class Task {
     this.end_time = toOptionalDate(end_time);
     this.recurring_days = recurring_days;
     this.completed = completed;
+    this.recurrence_occurrences = recurrence_occurrences;
   }
 
   short_due_date() {
@@ -59,6 +71,10 @@ export class Task {
 
   my_category(categories_list) {
     return categories_list.find((category) => category.id === this.category_id, this);
+  }
+
+  is_recurring() {
+    return this.recurrence_occurrences.length > 0 || this.recurring_days.length > 0;
   }
 
 }
