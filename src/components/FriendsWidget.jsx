@@ -1,10 +1,9 @@
 
-/** @typedef {import('../types/task').Friend} Friend */
 import { Check, Plus, X } from 'lucide-react'
 
 export default function FriendsWidget({
     friends,
-    friendRequest,
+    friendRequests,
     onAcceptFriendRequest,
     onRejectFriendRequest,
     onAddFriendClick
@@ -24,49 +23,64 @@ export default function FriendsWidget({
             </div>
 
             <div className="friends-widget-list">
-                {friendRequest ? (
-                    <article className="friends-widget-card friends-widget-card-request">
-                        <div className="friends-widget-avatar" aria-hidden="true">
-                            {friendRequest.avatar}
-                        </div>
-                        <div className="friends-widget-card-body">
-                            <p className="friends-widget-name">{friendRequest.name}</p>
-                            <p className="friends-widget-tasks">Incoming friend request</p>
-                        </div>
-                        <div className="friends-widget-request-actions">
-                            <button
-                                type="button"
-                                className="friends-widget-request-button friends-widget-request-button-accept"
-                                onClick={onAcceptFriendRequest}
-                                aria-label={`Accept friend request from ${friendRequest.name}`}
-                            >
-                                <Check size={16} aria-hidden="true" />
-                            </button>
-                            <button
-                                type="button"
-                                className="friends-widget-request-button friends-widget-request-button-reject"
-                                onClick={onRejectFriendRequest}
-                                aria-label={`Reject friend request from ${friendRequest.name}`}
-                            >
-                                <X size={16} aria-hidden="true" />
-                            </button>
-                        </div>
-                    </article>
-                ) : null}
+                {
+                    [ ...friendRequests.map((friend) => (
+                            
+                            <article key={friend.id} className="friends-widget-card friends-widget-card-request">
+                                <div className="friends-widget-avatar" aria-hidden="true">
+                                    {friend.profile_emoji}
+                                </div>
+                                <div className="friends-widget-card-body">
+                                    <p className="friends-widget-name">{friend.full_name}</p>
+                                    <p className="friends-widget-tasks">Incoming friend request</p>
+                                </div>
+                                <div className="friends-widget-request-actions">
+                                    <button
+                                        type="button"
+                                        className="friends-widget-request-button friends-widget-request-button-accept"
+                                        onClick={() => onAcceptFriendRequest(friend)}
+                                        aria-label={`Accept friend request from ${friend.full_name}`}
+                                    >
+                                        <Check size={16} aria-hidden="true" />
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="friends-widget-request-button friends-widget-request-button-reject"
+                                        onClick={() => onRejectFriendRequest(friend)}
+                                        aria-label={`Reject friend request from ${friend.full_name}`}
+                                    >
+                                        <X size={16} aria-hidden="true" />
+                                    </button>
+                                </div>
+                            </article>
+                        )
+                    ),
 
-                {friends.map((friend) => (
-                    <article key={friend.id} className="friends-widget-card">
-                        <div className="friends-widget-avatar" aria-hidden="true">
-                            {friend.avatar}
-                        </div>
-                        <div className="friends-widget-card-body">
-                            <p className="friends-widget-name">{friend.name}</p>
-                            <p className="friends-widget-tasks">
-                                {friend.tasksCompleted}/{friend.totalTasks} {friend.tasksCompleted === 1 ? 'task' : 'tasks'} done today
-                            </p>
-                        </div>
-                    </article>
-                ))}
+                    ...friends.map((friend) => {
+                        const completedToday = friend.activity_summary?.completed_today ?? null;
+                        const canSeeResults = friend.share_all || friend.share_results;
+                        return (
+                            <article key={friend.id} className="friends-widget-card">
+                                <div className="friends-widget-avatar" aria-hidden="true">
+                                    {friend.profile_emoji}
+                                </div>
+                                <div className="friends-widget-card-body">
+                                    <p className="friends-widget-name">{friend.full_name}</p>
+                                    {canSeeResults && completedToday !== null && (
+                                        <p className="friends-widget-tasks">
+                                            {completedToday} {completedToday === 1 ? "task" : "tasks"} completed today
+                                        </p>
+                                    )}
+                                    {(!canSeeResults || completedToday === null) && (
+                                        <p className="friends-widget-tasks">
+                                            {friend.get_card_snippet()}
+                                        </p>
+                                    )}
+                                </div>
+                            </article>
+                        );
+                    })]
+                }
             </div>
         </section>
     )

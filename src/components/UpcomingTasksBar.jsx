@@ -23,6 +23,23 @@ function lightenHexColor(hexColor, amount = 0.8) {
 }
 
 export default function UpcomingTasksBar({ tasks = [], categories = [], onTaskClick }) {
+  const sortedTasks = [...tasks]
+    .filter(task => !task.completed) // only show upcoming (incomplete) tasks
+    .sort((a, b) => {
+      // sort by start time (earliest first)
+      if (!a.start_time) return 1;
+      if (!b.start_time) return -1;
+
+      const startDiff = a.start_time - b.start_time;
+      if (startDiff !== 0) return startDiff;
+
+      // tie-breaker: category priority (1 = high, 3 = low)
+      const aPriority = a.my_category(categories)?.priority ?? 999;
+      const bPriority = b.my_category(categories)?.priority ?? 999;
+
+      return aPriority - bPriority;
+    });
+
   return (
     <section className="upcoming-tasks-bar">
       <div className="upcoming-tasks-header">
@@ -30,17 +47,16 @@ export default function UpcomingTasksBar({ tasks = [], categories = [], onTaskCl
       </div>
 
       <div className="upcoming-tasks-list">
-        {tasks.map((task) => {
-          const category = categories.find((item) => item.name === task.category);
+        {sortedTasks.map((task) => {
+          const category = task.my_category(categories);
           const borderColor = category?.color || '#cfd5de';
-          const backgroundColor = lightenHexColor(borderColor);
-          const priority = task.priority ?? category?.priority ?? 'N/A';
-
+          const backgroundColor = lightenHexColor(borderColor, task.completed ? 0.9 : 0.8);
+          const priority = category?.priority ?? 'N/A';
           return (
             <button
               key={task.id}
               type="button"
-              className="upcoming-task-card"
+              className={`upcoming-task-card${task.completed ? ' is-complete' : ''}`}
               style={{ borderColor, backgroundColor }}
               onClick={() => onTaskClick?.(task)}
             >
@@ -52,8 +68,8 @@ export default function UpcomingTasksBar({ tasks = [], categories = [], onTaskCl
                     aria-hidden="true"
                   />
                   <div className="upcoming-task-title-copy">
-                    <p className="upcoming-task-name">{task.name}</p>
-                    <p className="upcoming-task-category-name">{category?.name || task.category || 'Uncategorized'}</p>
+                    <p className="upcoming-task-name">{task.title}</p>
+                    <p className="upcoming-task-category-name">{category?.name || 'Uncategorized'}</p>
                   </div>
                 </div>
 
@@ -65,18 +81,18 @@ export default function UpcomingTasksBar({ tasks = [], categories = [], onTaskCl
               <div className="upcoming-task-bottom">
                 <div className="upcoming-task-detail">
                   <CalendarDays size={15} aria-hidden="true" />
-                  <span>{task.dueDate || 'No due date'}</span>
+                  <span>{task.short_due_date()|| 'No due date'}</span>
                 </div>
                 <div className="upcoming-task-detail">
                   <Clock3 size={15} aria-hidden="true" />
-                  <span>{task.startTime || 'No start time'}</span>
+                  <span>{task.start_time_string() || 'No start time'}</span>
                 </div>
               </div>
             </button>
           );
         })}
 
-        {tasks.length === 0 && <p className="upcoming-tasks-empty">No upcoming tasks yet.</p>}
+        {sortedTasks.length === 0 && <p className="upcoming-tasks-empty">No upcoming tasks yet.</p>}
       </div>
     </section>
   );

@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { CalendarDays, Clock3, Repeat2, Tag, X } from 'lucide-react'
+import { Task, Category } from '../types/task.js'
 
 const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-const PRIORITY_OPTIONS = [1, 2, 3]
 
 function formatDueDate(value) {
   if (!value) return ''
@@ -36,7 +36,6 @@ export default function AddTaskModal({ open = false, onClose, categories = [], o
   const [date, setDate] = useState('')
   const [startTime, setStartTime] = useState('')
   const [endTime, setEndTime] = useState('')
-  const [priority, setPriority] = useState(3)
   const [selectedDays, setSelectedDays] = useState([])
 
   const isSubmitDisabled = useMemo(
@@ -71,7 +70,6 @@ export default function AddTaskModal({ open = false, onClose, categories = [], o
     setDate('')
     setStartTime('')
     setEndTime('')
-    setPriority(3)
     setSelectedDays([])
   }
 
@@ -88,26 +86,53 @@ export default function AddTaskModal({ open = false, onClose, categories = [], o
     onClose?.()
   }
 
-  function handleSubmit(event) {
-    event.preventDefault()
-    if (isSubmitDisabled) return
+  async function handleSubmit(event) {
+      event.preventDefault()
+      if (isSubmitDisabled) return
 
-    onAddTask?.({
-      id: Date.now().toString(),
-      name: taskName.trim(),
-      category,
-      dueDate: formatDueDate(date),
-      startTime: formatClockTime(startTime),
-      endTime: formatClockTime(endTime),
-      priority,
-      recurringDays: selectedDays,
-      completed: false,
-    })
+      try {
+        const token = localStorage.getItem('token')
 
-    resetForm()
-    onClose?.()
-  }
+        const selectedCategory = categories.find(c => c.name === category)
+        if (!selectedCategory) return
 
+        const dayMap = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }
+        const recurrenceDayNumbers = selectedDays.map(d => dayMap[d])
+
+        const dueDate = date ? `${date}T23:59:00` : ""
+        const startTimestamp = date && startTime ? `${date}T${startTime}:00` : ""
+        const endTimestamp = date && endTime ? `${date}T${endTime}:00` : ""
+
+        const res = await fetch('http://localhost:8000/api/tasks', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            category_id: selectedCategory.id,
+            title: taskName.trim(),
+            description: "",
+            due_date: dueDate,
+            start_time: startTimestamp,
+            end_time: endTimestamp,
+            is_recurring: selectedDays.length > 0,
+            recurrence_days: recurrenceDayNumbers,
+            semester_id: localStorage.getItem('semester_id'),
+          }),
+        })
+
+        if (!res.ok) {
+          console.error('Failed to create task')
+          return
+        }
+
+        window.location.reload()
+      } catch {
+        console.error('Could not reach server')
+      }
+    }
+      
   if (!open) return null
 
   return (
@@ -212,28 +237,6 @@ export default function AddTaskModal({ open = false, onClose, categories = [], o
                 />
               </div>
             </label>
-          </div>
-
-          <div className="add-task-modal-field">
-            <span className="add-task-modal-label">Priority</span>
-            <div className="add-task-modal-priority-row">
-              <span className="add-task-modal-priority-side-label">Highest</span>
-              <div className="add-task-modal-priority-group" role="radiogroup" aria-label="Task priority">
-                {PRIORITY_OPTIONS.map((option) => (
-                  <button
-                    key={option}
-                    type="button"
-                    role="radio"
-                    aria-checked={priority === option}
-                    className={`add-task-modal-priority-button${priority === option ? ' is-selected' : ''}`}
-                    onClick={() => setPriority(option)}
-                  >
-                    {option}
-                  </button>
-                ))}
-              </div>
-              <span className="add-task-modal-priority-side-label">Lowest</span>
-            </div>
           </div>
 
           <div className="add-task-modal-field">

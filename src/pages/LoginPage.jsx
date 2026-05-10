@@ -11,25 +11,32 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError]       = useState('')
 
+  //Regular login
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
-    // TODO: Replace with your authentication API call
-    //
-    // try {
-    //   const res = await fetch('/api/auth/login', {
-    //     method: 'POST',
-    //     headers: { 'Content-Type': 'application/json' },
-    //     body: JSON.stringify({ email, password })
-    //   })
-    //   if (!res.ok) throw new Error('Invalid credentials. Please try again.')
-    //   navigate('/dashboard')
-    // } catch (err) {
-    //   setError(err.message)
-    // }
-    console.log('Login submitted:', { email, password })
+     try {
+        const res = await fetch('http://localhost:8000/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        })
+        const data = await res.json()
+        console.log('login response:', data)
+        if (!res.ok) {
+          setError(data.detail || 'Invalid credentials')
+          return
+        }
+        localStorage.setItem('token', data.token)
+        localStorage.setItem('semester_id', data.semester_id);
+        navigate('/home')
+      } catch {
+        setError('Could not connect to server')
+      }
+      console.log('Login submitted:', {email, password})
   }
 
+  //SSO login with a umass.edu email
   const umassLogin = useGoogleLogin({
     flow: 'implicit',
     hint: 'umass.edu',
@@ -47,7 +54,8 @@ export default function LoginPage() {
           return
         }
         localStorage.setItem('token', data.token)
-        navigate('/dashboard')
+        localStorage.setItem('semester_id', data.semester_id);
+        navigate('/home')
       } catch {
         setError('Could not connect to server')
       }

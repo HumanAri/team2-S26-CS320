@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Brand from '../components/Brand'
 import FriendsWidget from '../components/FriendsWidget'
 import UpcomingTasksBar from '../components/UpcomingTasksBar'
@@ -9,205 +10,113 @@ import TaskDetailsModal from '../components/TaskDetailsModal'
 import ProfileModal from '../components/ProfileModal'
 import AddFriendModal from '../components/AddFriendModal'
 import { Plus, FolderPlus } from 'lucide-react'
-
-/** @typedef {import('../types/task').Task} Task */
-/** @typedef {import('../types/task').Category} Category */
+import { Category, Task, Friend } from "../types/task.js"
 
 export default function HomePage() {
+  const navigate = useNavigate();
+
   const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false)
   const [isAddCategoryModalOpen, setIsAddCategoryModalOpen] = useState(false)
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false)
   const [isAddFriendModalOpen, setIsAddFriendModalOpen] = useState(false)
   const [selectedTask, setSelectedTask] = useState(null)
-
-  const [categories, setCategories] = useState([
-    { id: "cat-1", name: "CS", color: "#b7e4ee", priority: 1 },
-    { id: "cat-2", name: "Gym", color: "#f6de95", priority: 1 },
-    { id: "cat-3", name: "Work", color: "#f2c6de", priority: 2 },
-    { id: "cat-4", name: "Personal", color: "#cfe7c2", priority: 3 },
-    { id: "cat-5", name: "Study Group", color: "#d7d1ff", priority: 2 },
-    { id: "cat-6", name: "Errands", color: "#ffd7b8", priority: 3 },
-  ])
-  
-  const [tasks, setTasks] = useState([
-    {
-      id: "1",
-      name: "Weekly planning session",
-      category: "Personal",
-      dueDate: "4/5",
-      startTime: "9:00 AM",
-      endTime: "11:00 AM",
-      recurringDays: [],
-      completed: false
-    },
-    {
-      id: "2",
-      name: "Upper body workout",
-      category: "Gym",
-      dueDate: "4/5",
-      startTime: "5:30 PM",
-      endTime: "7:30 PM",
-      recurringDays: [],
-      completed: false
-    },
-    {
-      id: "3",
-      name: "Sprint kickoff",
-      category: "Work",
-      dueDate: "4/6",
-      startTime: "9:30 AM",
-      endTime: "11:30 AM",
-      recurringDays: [],
-      completed: false
-    },
-    {
-      id: "4",
-      name: "Algorithms lecture notes",
-      category: "CS",
-      dueDate: "4/6",
-      startTime: "1:00 PM",
-      endTime: "3:00 PM",
-      recurringDays: [],
-      completed: false
-    },
-    {
-      id: "5",
-      name: "Team project sync",
-      category: "Study Group",
-      dueDate: "4/7",
-      startTime: "4:00 PM",
-      endTime: "6:00 PM",
-      recurringDays: [],
-      completed: false
-    },
-    {
-      id: "6",
-      name: "Leg day",
-      category: "Gym",
-      dueDate: "4/7",
-      startTime: "6:00 PM",
-      endTime: "8:00 PM",
-      recurringDays: [],
-      completed: false
-    },
-    {
-      id: "7",
-      name: "Database assignment block",
-      category: "CS",
-      dueDate: "4/8",
-      startTime: "11:00 AM",
-      endTime: "1:00 PM",
-      recurringDays: [],
-      completed: false
-    },
-    {
-      id: "8",
-      name: "Grocery run",
-      category: "Errands",
-      dueDate: "4/8",
-      startTime: "5:45 PM",
-      endTime: "7:45 PM",
-      recurringDays: [],
-      completed: false
-    },
-    {
-      id: "9",
-      name: "Mock interview practice",
-      category: "Work",
-      dueDate: "4/9",
-      startTime: "2:00 PM",
-      endTime: "4:00 PM",
-      recurringDays: [],
-      completed: false
-    },
-    {
-      id: "10",
-      name: "Study group review",
-      category: "Study Group",
-      dueDate: "4/9",
-      startTime: "7:00 PM",
-      endTime: "9:00 PM",
-      recurringDays: [],
-      completed: false
-    },
-    {
-      id: "11",
-      name: "Frontend polish pass",
-      category: "Work",
-      dueDate: "4/10",
-      startTime: "10:00 AM",
-      endTime: "12:00 PM",
-      recurringDays: [],
-      completed: false
-    },
-    {
-      id: "12",
-      name: "Campus coffee catch-up",
-      category: "Personal",
-      dueDate: "4/10",
-      startTime: "3:30 PM",
-      endTime: "5:30 PM",
-      recurringDays: [],
-      completed: false
-    },
-    {
-      id: "13",
-      name: "Laundry and reset",
-      category: "Errands",
-      dueDate: "4/11",
-      startTime: "10:30 AM",
-      endTime: "12:30 PM",
-      recurringDays: [],
-      completed: false
-    },
-    {
-      id: "14",
-      name: "Read chapter 8",
-      category: "CS",
-      dueDate: "4/11",
-      startTime: "7:30 PM", 
-      endTime: "9:30 PM",
-      recurringDays: [],
-      completed: true
-    }
-  ])
-
-  const [friends, setFriends] = useState([
-    { id: "1", name: "Hingle McCringleberry", avatar: "👨", tasksCompleted: 4, totalTasks: 9 },
-    { id: "2", name: "Ella", avatar: "👩", tasksCompleted: 11, totalTasks: 11 },
-  ]);
-  const [friendRequest, setFriendRequest] = useState({
-    id: "request-1",
-    name: "John Pork",
-    avatar: "🐷",
+  const [profile, setProfile] = useState({
+    email: '',
+    display_name: '',
+    first_name: '',
+    last_name: '',
+    profile_picture: '🙂',
+    share_goals: false,
+    share_results: false,
+    share_other: false,
+    share_all: false,
   })
 
-  function handleAcceptFriendRequest() {
-    if (!friendRequest) return
+  const [categories, setCategories] = useState([])
+  const [tasks, setTasks] = useState([])
+  const [friends, setFriends] = useState([]);
+  const [friendRequests, setFriendRequests] = useState([]);
+
+  async function handleAcceptFriendRequest(friend) {
+    if (!friendRequests) return
+
+    const token = localStorage.getItem('token');
 
     setFriends((currentFriends) => [
-      {
-        id: friendRequest.id,
-        name: friendRequest.name,
-        avatar: friendRequest.avatar,
-        tasksCompleted: 0,
-        totalTasks: 0,
-      },
+      friend,
       ...currentFriends,
     ])
-    setFriendRequest(null)
+
+    setFriendRequests((currentFriendRequests) => currentFriendRequests.filter((f) => f.id !== friend.id))
+
+    try {
+      const res = await fetch('http://localhost:8000/api/friends/change-status', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          friend_user_id: friend.id,
+          new_status: 1
+        })
+      });
+    } catch (err) {
+      console.log(err)
+    }
+  
+    
   }
 
-  function handleRejectFriendRequest() {
-    setFriendRequest(null)
+  async function handleRejectFriendRequest(friend) {
+    if (!friendRequests) return
+    setFriendRequests((currentFriendRequests) => currentFriendRequests.filter((f) => f.id !== friend.id))
+   
+
+    const token = localStorage.getItem('token');
+
+    try {
+      const res = await fetch('http://localhost:8000/api/friends/change-status', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          friend_user_id: friend.id,
+          new_status: 2
+        })
+      });
+    } catch (err) {
+      console.log(err)
+    }
   }
 
-  function handleAddTask(task) {
-    setTasks((currentTasks) => [task, ...currentTasks])
+  function handleAddTask(new_task) {
+    setTasks((currentTasks) => [new_task, ...currentTasks])
   }
 
-  function handleAddCategory(category) {
-    setCategories((currentCategories) => [category, ...currentCategories])
+  async function handleAddCategory(category) {
+    const token = localStorage.getItem('token');
+    const semesterId = localStorage.getItem('semester_id')
+
+    const res = await fetch('http://localhost:8000/api/categories', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        categories: [{name: category.name, color: category.color, priority: category.priority}],
+        semester_id: semesterId
+      })
+    });
+
+    const data = await res.json();
+    const savedCategory = data.created?.[0];
+    const categoryWithRealId = savedCategory ? { ...category, id: savedCategory.id } : category;
+
+    setCategories(currentCategories => [categoryWithRealId, ...currentCategories]);
   }
 
   function handleSelectTask(task) {
@@ -218,26 +127,189 @@ export default function HomePage() {
     setSelectedTask(null)
   }
 
-  function handleDeleteTask(taskToDelete) {
-    setTasks((currentTasks) => currentTasks.filter((task) => task.id !== taskToDelete.id))
-    setSelectedTask(null)
-  }
+  useEffect(() => {
+    const token = localStorage.getItem('token')
+    if (!token) return
 
-  function handleMarkTaskDone(taskToUpdate) {
+    let isActive = true
+
+    async function loadProfile() {
+      try {
+        const response = await fetch('http://localhost:8000/api/auth/me', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+
+        if (!response.ok) return
+
+        const user = await response.json()
+        if (isActive) {
+          setProfile((currentProfile) => ({
+            ...currentProfile,
+            ...user,
+            profile_picture: user.profile_picture || currentProfile.profile_picture,
+          }))
+        }
+      } catch {
+        // Keep the default avatar if the profile request fails.
+      }
+    }
+
+    async function loadHomePageData() {
+      try {
+        const response = await fetch('http://localhost:8000/api/homepage', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+
+        if (!response.ok) return
+
+        const data = await response.json()
+
+        if (isActive) {
+
+          const categories_list = data.categories.map((category) => {
+            return new Category(category.id, category.name, category.color, category.priority)
+          })
+
+
+          const tasks_list = data.tasks.map((task) => {
+
+            return new Task(
+              task.id,
+              task.title,
+              task.description,
+              task.category_id,
+              task.due_date,
+              task.start_time,
+              task.end_time,
+              task.recurring_days,
+              task.status == "incomplete" ? false : true
+            )
+          });
+
+          const friend_stub_to_friend = (friendStub) => {
+            return new Friend(
+              friendStub.id, 
+              friendStub.full_name, 
+              friendStub.display_name, 
+              friendStub.profile_picture,
+              friendStub.share_goals,
+              friendStub.share_results,
+              friendStub.share_other,
+              friendStub.share_all,
+              friendStub.activity_summary
+            )
+          }
+
+          const friends_list = data.myFriends.map(friend_stub_to_friend);
+
+          const friend_requests = data.incomingFriendRequests.map(friend_stub_to_friend);
+
+          setCategories(categories_list);
+          setTasks(tasks_list);
+          setFriends(friends_list);
+          setFriendRequests(friend_requests);
+
+
+        }
+
+      } catch {
+
+      }
+      
+    }
+
+    loadProfile()
+    loadHomePageData()
+
+
+    return () => {
+      isActive = false
+    }
+
+  }, [])
+
+
+  async function handleDeleteTask(taskToDelete) {
+      try {
+        const token = localStorage.getItem('token')
+        const res = await fetch(`http://localhost:8000/api/tasks/${taskToDelete.id}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` },
+        })
+
+        if (!res.ok) {
+          console.error('Failed to delete task')
+          return
+        }
+      } catch {
+        console.error('Could not reach server')
+        return
+      }
+
+      setTasks((currentTasks) => currentTasks.filter((task) => task.id !== taskToDelete.id))
+      setSelectedTask(null)
+    }
+
+  async function handleMarkTaskDone(taskToUpdate) {
+
+    taskToUpdate.completed = true;
+
+    console.log(JSON.stringify(taskToUpdate))
+
+    try {
+      const token = localStorage.getItem('token')
+      const res = await fetch('http://localhost:8000/api/update-task', {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+        body: JSON.stringify({
+          id: taskToUpdate.id,
+          title: taskToUpdate.title,
+          description: taskToUpdate.description,
+          category_id: taskToUpdate.category_id,
+          due_date: taskToUpdate.due_date,
+          start_time: taskToUpdate.start_time,
+          end_time: taskToUpdate.end_time,
+          priority: taskToUpdate.priority,
+          status: "complete"
+        })
+      });
+    } catch (err) {
+      console.log(err)
+      console.log("post failed")
+    }
+
     setTasks((currentTasks) =>
-      currentTasks.map((task) =>
-        task.id === taskToUpdate.id
-          ? { ...task, completed: true }
-          : task
+      currentTasks.map((task) => {
+          if (task.id == taskToUpdate.id) {
+            return taskToUpdate;
+          } else {
+            return task;
+          }
+          
+        }
       )
     )
-    setSelectedTask((currentTask) => (currentTask ? { ...currentTask, completed: true } : currentTask))
+    setSelectedTask((currentTask) => (currentTask ? taskToUpdate : currentTask))
   }
 
   return (
     <div className="home-page">
       <div className="home-top-bar">
-        <Brand/>
+        <button
+          type="button"
+          className="home-brand-button"
+          onClick={() => navigate('/')}
+          aria-label="Go to login"
+        >
+          <Brand />
+        </button>
         <div className="home-top-bar-buttons">
           <div className="home-pill-placeholder" aria-hidden="true" />
           <button
@@ -264,7 +336,7 @@ export default function HomePage() {
           aria-label="Profile"
           onClick={() => setIsProfileModalOpen(true)}
         >
-          <span className="home-profile-button-circle" aria-hidden="true">🙂</span>
+          <span className="home-profile-button-circle" aria-hidden="true">{profile.profile_picture}</span>
           <span className="home-profile-button-label">Profile</span>
         </button>
       </div>
@@ -276,7 +348,7 @@ export default function HomePage() {
         <div className="home-friends-section">
           <FriendsWidget
             friends={friends}
-            friendRequest={friendRequest}
+            friendRequests={friendRequests}
             onAcceptFriendRequest={handleAcceptFriendRequest}
             onRejectFriendRequest={handleRejectFriendRequest}
             onAddFriendClick={() => setIsAddFriendModalOpen(true)}
@@ -285,7 +357,14 @@ export default function HomePage() {
       </div>
 
       <div className="home-upcoming-section">
-        <UpcomingTasksBar tasks={tasks} categories={categories} onTaskClick={handleSelectTask} />
+        <UpcomingTasksBar tasks={tasks.filter(t => {
+            if (t.completed) return false
+            const dueDate = t.due_date ? new Date(t.due_date) : null
+            if (!dueDate) return true
+            const now = new Date()
+            const oneWeekOut = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
+            return dueDate >= now && dueDate <= oneWeekOut
+          })} categories={categories} onTaskClick={handleSelectTask} />
       </div>
 
       <AddTaskModal
@@ -304,6 +383,7 @@ export default function HomePage() {
       <TaskDetailsModal
         open={Boolean(selectedTask)}
         task={selectedTask}
+        categories={categories}
         onClose={handleCloseTaskModal}
         onDelete={handleDeleteTask}
         onMarkDone={handleMarkTaskDone}
@@ -312,6 +392,18 @@ export default function HomePage() {
       <ProfileModal
         open={isProfileModalOpen}
         onClose={() => setIsProfileModalOpen(false)}
+        profile={profile}
+        onPrivacySave={(privacy) => {
+          setProfile((currentProfile) => ({
+            ...currentProfile,
+            ...privacy,
+          }))
+        }}
+        onLogout={() => {
+          localStorage.removeItem('token')
+          localStorage.removeItem('semester_id')
+          navigate('/')
+        }}
       />
 
       <AddFriendModal
