@@ -4,6 +4,20 @@ import { Task, Category } from '../types/task.js'
 
 const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
+function taskFromApiTask(savedTask, fallbackRecurringDays = []) {
+  return new Task(
+    savedTask.id,
+    savedTask.title,
+    savedTask.description,
+    savedTask.category_id,
+    savedTask.due_date,
+    savedTask.start_time,
+    savedTask.end_time,
+    savedTask.recurrence_days ?? savedTask.recurring_days ?? fallbackRecurringDays,
+    savedTask.status === 'complete'
+  )
+}
+
 function formatDueDate(value) {
   if (!value) return ''
 
@@ -128,24 +142,16 @@ export default function AddTaskModal({ open = false, onClose, categories = [], o
         }
 
       const savedTask = await res.json()
-
-      const new_task = new Task(
-        savedTask.id,
-        savedTask.title,
-        savedTask.description,
-        savedTask.category_id,
-        savedTask.due_date,
-        savedTask.start_time,
-        savedTask.end_time,
-        savedTask.recurrence_days,
-        false
-      )
+      const savedTasks = Array.isArray(savedTask) ? savedTask : [savedTask]
+      const newTasks = savedTasks.map((task) => taskFromApiTask(task, recurrenceDayNumbers))
 
       // still update local state so it shows up immediately
-      onAddTask(new_task)
+      onAddTask(newTasks)
 
       resetForm()
       onClose()
+
+      console.log("added the task boss. ")
     } catch (error) {
       console.log(error)
       console.error('Could not reach server')

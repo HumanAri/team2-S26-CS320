@@ -10,6 +10,13 @@ export class Category {
   }
 }
 
+function toOptionalDate(value) {
+  if (!value) return null;
+
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
 export class Task {
 
   constructor(
@@ -27,9 +34,9 @@ export class Task {
     this.title = title;
     this.description = description;
     this.category_id = category_id;
-    this.due_date = (due_date === null) ? null : new Date(due_date);
-    this.start_time = (start_time === null) ? null : new Date(start_time);
-    this.end_time = (end_time === null) ? null : new Date(end_time);
+    this.due_date = toOptionalDate(due_date);
+    this.start_time = toOptionalDate(start_time);
+    this.end_time = toOptionalDate(end_time);
     this.recurring_days = recurring_days;
     this.completed = completed;
   }
@@ -38,13 +45,12 @@ export class Task {
     if (this.due_date === null) {
       return "";
     } else {
-      console.log(this.due_date)
       return `${this.due_date.getMonth() + 1}/${this.due_date.getDate()}`;
     }
   }
 
   start_time_string() {
-    const str = (this.start_time === null) ? "" : this.start_time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return (this.start_time === null) ? "" : this.start_time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
 
   end_time_string() {

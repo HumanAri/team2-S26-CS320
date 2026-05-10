@@ -370,70 +370,13 @@ def create_task(body: TaskRequest, current_user: dict = Depends(get_current_user
 
     user_id = user.data[0]["id"]
 
-    # if recurring, create a separate task for each selected day
-    if body.is_recurring and body.recurrence_days:
-            base_date = datetime.fromisoformat(body.due_date) if body.due_date else datetime.now()
+    recurrence_days = sorted(set(body.recurrence_days or []))
+    is_recurring = body.is_recurring and len(recurrence_days) > 0
 
-            # get the semester end date
-            if body.semester_id:
-                sem = supabase.table("semesters").select("end_date").eq("id", body.semester_id).execute()
-                if sem.data:
-                    semester_end = datetime.fromisoformat(sem.data[0]["end_date"])
-                else:
-                    semester_end = base_date + timedelta(weeks=16)
-            else:
-                semester_end = base_date + timedelta(weeks=16)
+    if any(day < 0 or day > 6 for day in recurrence_days):
+        raise HTTPException(status_code=400, detail="Recurrence days must be integers from 0 to 6")
 
-            # find the start of the week containing base_date (Sunday)
-            week_start = base_date - timedelta(days=base_date.weekday() + 1)  # Python weekday: Mon=0
-            if week_start > base_date:
-                week_start -= timedelta(days=7)
-
-            # convert our day format (0=Sun) to offset from Sunday
-            created_tasks = []
-            current_week = week_start
-
-            while current_week <= semester_end:
-                for day in body.recurrence_days:
-                    target_date = current_week + timedelta(days=day)
-
-                    # skip dates before the original due date or after semester end
-                    if target_date < base_date.replace(hour=0, minute=0, second=0):
-                        continue
-                    if target_date > semester_end:
-                        continue
-
-                    task_due = target_date.strftime("%Y-%m-%dT23:59:00")
-                    task_start = None
-                    task_end = None
-
-                    if body.start_time:
-                        start_parsed = datetime.fromisoformat(body.start_time)
-                        task_start = target_date.strftime(f"%Y-%m-%dT{start_parsed.strftime('%H:%M:%S')}")
-
-                    if body.end_time:
-                        end_parsed = datetime.fromisoformat(body.end_time)
-                        task_end = target_date.strftime(f"%Y-%m-%dT{end_parsed.strftime('%H:%M:%S')}")
-
-                    task = supabase.table("tasks").insert({
-                        "user_id": user_id,
-                        "category_id": body.category_id,
-                        "title": body.title,
-                        "description": body.description,
-                        "due_date": task_due,
-                        "start_time": task_start,
-                        "end_time": task_end,
-                        "status": "incomplete",
-                        "is_recurring": True,
-                    }).execute()
-
-                    created_tasks.append(task.data[0])
-
-                current_week += timedelta(days=7)
-
-            return created_tasks
-
-    # non-recurring: create a single task
+    # Create one task row. Recurrence is represented by rows in recurrence_days.
     task = supabase.table("tasks").insert({
         "user_id": user_id,
         "category_id": body.category_id,
@@ -443,10 +386,31 @@ def create_task(body: TaskRequest, current_user: dict = Depends(get_current_user
         "start_time": body.start_time if body.start_time != "" else None,
         "end_time": body.end_time if body.end_time != "" else None,
         "status": "incomplete",
-        "is_recurring": False,
+        "is_recurring": is_recurring,
     }).execute()
 
-    return task.data[0]
+    created_task = task.data[0]
+
+    if is_recurring:
+        recurrence_rows = [
+            {"task_id": created_task["id"], "day_of_week": day}
+            for day in recurrence_days
+        ]
+
+        saved_recurrence_days = (
+            supabase.table("recurrence_days")
+            .insert(recurrence_rows)
+            .execute()
+        )
+
+        if not saved_recurrence_days.data:
+            supabase.table("tasks").delete().eq("id", created_task["id"]).execute()
+            raise HTTPException(status_code=500, detail="Could not create recurrence days")
+
+    return {
+        **created_task,
+        "recurring_days": recurrence_days if is_recurring else [],
+    }
 
 
 # deleting a task, also deletes the recurrence days if it's a recurring task

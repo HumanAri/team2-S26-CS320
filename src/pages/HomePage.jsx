@@ -164,8 +164,14 @@ export default function HomePage() {
     }
   }
 
-  function handleAddTask(new_task) {
-    setTasks((currentTasks) => [new_task, ...currentTasks])
+  function handleAddTask(newTaskOrTasks) {
+    const newTasks = Array.isArray(newTaskOrTasks) ? newTaskOrTasks : [newTaskOrTasks]
+
+    setTasks((currentTasks) => {
+      const nextTasks = [...newTasks, ...currentTasks]
+      console.log("these are the new tasks: ", nextTasks)
+      return nextTasks
+    })
   }
 
   async function handleAddCategory(category) {
@@ -272,7 +278,7 @@ export default function HomePage() {
               task.start_time,
               task.end_time,
               task.recurring_days,
-              task.status == "incomplete" ? false : true
+              task.status === "incomplete" ? false : true
             )
           });
 
@@ -385,6 +391,22 @@ export default function HomePage() {
     setSelectedTask((currentTask) => (currentTask ? taskToUpdate : currentTask))
   }
 
+  function isTaskDueSoon(task) {
+    if (task.completed) return false
+
+    const dueDate = task.due_date ? new Date(task.due_date) : null
+    if (!dueDate || Number.isNaN(dueDate.getTime())) return true
+
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    const oneWeekOut = new Date(today)
+    oneWeekOut.setDate(today.getDate() + 7)
+    oneWeekOut.setHours(23, 59, 59, 999)
+
+    return dueDate >= today && dueDate <= oneWeekOut
+  }
+
   return (
     <div className="home-page">
       <div className="home-top-bar">
@@ -477,14 +499,7 @@ export default function HomePage() {
       </div>
 
       <div className="home-upcoming-section">
-        <UpcomingTasksBar tasks={tasks.filter(t => {
-            if (t.completed) return false
-            const dueDate = t.due_date ? new Date(t.due_date) : null
-            if (!dueDate) return true
-            const now = new Date()
-            const oneWeekOut = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
-            return dueDate >= now && dueDate <= oneWeekOut
-          })} categories={categories} onTaskClick={handleSelectTask} />
+        <UpcomingTasksBar tasks={tasks.filter(isTaskDueSoon)} categories={categories} onTaskClick={handleSelectTask} />
       </div>
 
       <AddTaskModal
