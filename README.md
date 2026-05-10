@@ -19,6 +19,7 @@
       SUPABASE_KEY will be posted on Slack
       FRONTEND_URL should be http://localhost:5173 if doing local testing
       RESEND_API_KEY = ... (Should be posted on the Slack)
+      RESEND_API_KEY = ... (Should be posted on the Slack)
 
 ## How to test and run this:
   1. Make sure you're in team2-S26-CS320 directory
