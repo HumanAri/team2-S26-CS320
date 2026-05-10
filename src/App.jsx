@@ -21,7 +21,7 @@ export default function App() {
             <Route path="/"            element={<LoginPage />} />
             <Route path="/signup"      element={<SignupPage />} />
             <Route path="/home"        element={<HomePage />} />
-            <Route path="/wrapped"     element={<WrappedPage />} />
+            <Route path="/wrapped"     element={<Wrapped />} />
             <Route path="/onboarding/1" element={<Step1Emoji />} />
             <Route path="/onboarding/2" element={<Step2Categories />} />
             <Route path="/onboarding/3" element={<Step3Priority />} />
