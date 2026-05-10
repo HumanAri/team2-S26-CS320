@@ -1,5 +1,7 @@
 
 import { Check, Plus, X } from 'lucide-react'
+import Skeleton from 'react-loading-skeleton'
+import 'react-loading-skeleton/dist/skeleton.css'
 
 export default function FriendsWidget({
     friends,
@@ -56,29 +58,34 @@ export default function FriendsWidget({
                         )
                     ),
 
-                    ...friends.map((friend) => {
-                        const completedToday = friend.activity_summary?.completed_today ?? null;
-                        const canSeeResults = friend.share_all || friend.share_results;
+                    ...friends.map((friend, index) => {
+                        if (friend.id === "skeleton") {
+                            return (
+                                <article key={`${friend.id}-${index}`} className="friends-widget-card friends-widget-card-loading">
+                                    <div className="friends-widget-avatar friends-widget-avatar-loading" aria-hidden="true">
+                                        <Skeleton circle width={34} height={34} />
+                                    </div>
+                                    <div className="friends-widget-card-body">
+                                        <Skeleton height={18} />
+                                        <Skeleton className="friends-widget-skeleton-line" height={14} width="82%" />
+                                    </div>
+                                </article>
+                            )
+                        }
+
                         return (
-                            <article key={friend.id} className="friends-widget-card">
-                                <div className="friends-widget-avatar" aria-hidden="true">
-                                    {friend.profile_emoji}
-                                </div>
-                                <div className="friends-widget-card-body">
-                                    <p className="friends-widget-name">{friend.full_name}</p>
-                                    {canSeeResults && completedToday !== null && (
-                                        <p className="friends-widget-tasks">
-                                            {completedToday} {completedToday === 1 ? "task" : "tasks"} completed today
-                                        </p>
-                                    )}
-                                    {(!canSeeResults || completedToday === null) && (
-                                        <p className="friends-widget-tasks">
-                                            {friend.get_card_snippet()}
-                                        </p>
-                                    )}
-                                </div>
-                            </article>
-                        );
+                        <article key={friend.id} className="friends-widget-card">
+                            <div className="friends-widget-avatar" aria-hidden="true">
+                                {friend.profile_emoji}
+                            </div>
+                            <div className="friends-widget-card-body">
+                                <p className="friends-widget-name">{friend.full_name}</p>
+                                <p className="friends-widget-tasks">
+                                    {friend.get_card_snippet()}
+                                </p>
+                            </div>
+                        </article>
+                        )
                     })]
                 }
             </div>

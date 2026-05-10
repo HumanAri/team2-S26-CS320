@@ -1,7 +1,7 @@
 import { useRef, useEffect } from 'react'
 import { gsap } from 'gsap'
 
-export default function HippoButton({ label, id }) {
+export default function HippoButton({ label, id, type = "submit", onClick, className = "" }) {
   const btnRef = useRef(null)
 
   useEffect(() => {
@@ -68,7 +68,7 @@ export default function HippoButton({ label, id }) {
   const mouthClip = `${id}-mouthClip`
 
   return (
-    <button type="submit" className="btn-hippo" ref={btnRef} aria-label={label}>
+    <button type={type} className={`btn-hippo ${className}`.trim()} ref={btnRef} aria-label={label} onClick={onClick}>
       <svg viewBox="0 0 242 109" xmlns="http://www.w3.org/2000/svg">
         <g className="ears">
           <g className="ear-left">
