@@ -443,7 +443,7 @@ def send_friend_request_email(recipient_email, recipient_first_name, sender_name
                 <li>See each other’s task activity (based on your privacy settings)</li>
             </ul>
             <p>👉 <b>Review and respond to this request:</b></p>
-            <p><a href='https://habitask.app/friends' style='background: #6c63ff; color: white; padding: 10px 18px; border-radius: 6px; text-decoration: none;'>View Friend Request</a></p>
+            <p><a href='https://habitaskcs320.netlify.app/' style='background: #6c63ff; color: white; padding: 10px 18px; border-radius: 6px; text-decoration: none;'>View Friend Request</a></p>
             <p>If you’re not expecting this request, you can safely ignore this email.</p>
             <p>Stay consistent,</p>
             <p>The Habitask Team</p>
