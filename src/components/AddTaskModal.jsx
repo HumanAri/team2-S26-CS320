@@ -137,8 +137,7 @@ export default function AddTaskModal({ open = false, onClose, categories = [], o
         savedTask.due_date,
         savedTask.start_time,
         savedTask.end_time,
-        priority,
-        body.recurrence_days,
+        savedTask.recurrence_days,
         false
       )
 
@@ -147,7 +146,8 @@ export default function AddTaskModal({ open = false, onClose, categories = [], o
 
       resetForm()
       onClose()
-    } catch {
+    } catch (error) {
+      console.log(error)
       console.error('Could not reach server')
     }
   }
