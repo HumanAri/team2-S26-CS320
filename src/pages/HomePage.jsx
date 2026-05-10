@@ -9,6 +9,8 @@ import AddCategoryModal from '../components/AddCategoryModal'
 import TaskDetailsModal from '../components/TaskDetailsModal'
 import ProfileModal from '../components/ProfileModal'
 import AddFriendModal from '../components/AddFriendModal'
+import HippoButton from '../components/HippoButton'
+import WrappedIntroCutscene from '../components/WrappedIntroCutscene'
 import { Plus, FolderPlus } from 'lucide-react'
 import { Category, Task, Friend } from "../types/task.js"
 
@@ -20,6 +22,8 @@ export default function HomePage() {
   const [isAddCategoryModalOpen, setIsAddCategoryModalOpen] = useState(false)
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false)
   const [isAddFriendModalOpen, setIsAddFriendModalOpen] = useState(false)
+  const [isWrappedCutsceneOpen, setIsWrappedCutsceneOpen] = useState(true)
+  const [hasWrappedAccess, setHasWrappedAccess] = useState(false)
   const [selectedTask, setSelectedTask] = useState(null)
   const [profile, setProfile] = useState({
     email: '',
@@ -193,6 +197,15 @@ export default function HomePage() {
 
   function handleCloseTaskModal() {
     setSelectedTask(null)
+  }
+
+  function handleCompleteWrappedCutscene() {
+    setIsWrappedCutsceneOpen(false)
+    setHasWrappedAccess(true)
+  }
+
+  function handleViewWrapped() {
+    navigate('/wrapped')
   }
 
   useEffect(() => {
@@ -399,6 +412,17 @@ export default function HomePage() {
           </button>
         </div>
         <div className="home-top-bar-spacer" />
+        {hasWrappedAccess && (
+          <div className="home-wrapped-button">
+            <HippoButton
+              label="WRAPPED"
+              id="wrapped-topbar-hippo"
+              type="button"
+              onClick={handleViewWrapped}
+              className="btn-hippo-compact"
+            />
+          </div>
+        )}
         <button
           type="button"
           className="home-profile-button"
@@ -486,6 +510,11 @@ export default function HomePage() {
       <AddFriendModal
         open={isAddFriendModalOpen}
         onClose={() => setIsAddFriendModalOpen(false)}
+      />
+
+      <WrappedIntroCutscene
+        open={isWrappedCutsceneOpen}
+        onComplete={handleCompleteWrappedCutscene}
       />
     </div>
   )
