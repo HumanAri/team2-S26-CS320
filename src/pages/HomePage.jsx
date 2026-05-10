@@ -11,7 +11,7 @@ import ProfileModal from '../components/ProfileModal'
 import AddFriendModal from '../components/AddFriendModal'
 import HippoButton from '../components/HippoButton'
 import WrappedIntroCutscene from '../components/WrappedIntroCutscene'
-import { Plus, FolderPlus } from 'lucide-react'
+import { Plus, FolderPlus, Sparkles } from 'lucide-react'
 import { Category, Task, Friend } from "../types/task.js"
 
 export default function HomePage() {
@@ -22,7 +22,7 @@ export default function HomePage() {
   const [isAddCategoryModalOpen, setIsAddCategoryModalOpen] = useState(false)
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false)
   const [isAddFriendModalOpen, setIsAddFriendModalOpen] = useState(false)
-  const [isWrappedCutsceneOpen, setIsWrappedCutsceneOpen] = useState(true)
+  const [isWrappedCutsceneOpen, setIsWrappedCutsceneOpen] = useState(false)
   const [hasWrappedAccess, setHasWrappedAccess] = useState(false)
   const [selectedTask, setSelectedTask] = useState(null)
   const [profile, setProfile] = useState({
@@ -202,6 +202,11 @@ export default function HomePage() {
   function handleCompleteWrappedCutscene() {
     setIsWrappedCutsceneOpen(false)
     setHasWrappedAccess(true)
+  }
+
+  function handleStartWrappedDemo() {
+    setHasWrappedAccess(false)
+    setIsWrappedCutsceneOpen(true)
   }
 
   function handleViewWrapped() {
@@ -409,6 +414,14 @@ export default function HomePage() {
           >
             <FolderPlus size={18} />
             <span>Add Category</span>
+          </button>
+          <button
+            type="button"
+            className="home-pill-button home-pill-button-demo"
+            onClick={handleStartWrappedDemo}
+          >
+            <Sparkles size={18} />
+            <span>Demo Wrapped</span>
           </button>
         </div>
         <div className="home-top-bar-spacer" />
