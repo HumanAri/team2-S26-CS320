@@ -812,9 +812,8 @@ def get_homepage_data(current_user: dict = Depends(get_current_user)):
         fs["user1_id"] == user_id) else fs["user1_id"] for fs in my_accepted_friendships]
 
     my_pending_friendships = [
-        fs for fs in raw_friendships if fs["status"] == 0]
-    my_friend_req_ids = [fs["user2_id"] if (
-        fs["user1_id"] == user_id) else fs["user1_id"] for fs in my_pending_friendships]
+        fs for fs in raw_friendships if fs["status"] == 0 and fs["user2_id"] == user_id]
+    my_friend_req_ids = [fs["user1_id"] for fs in my_pending_friendships]
 
     my_friends = []
     if my_friend_ids:
