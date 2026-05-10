@@ -1,5 +1,3 @@
-
-
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -14,6 +12,9 @@ import bcrypt
 from user_data_classes import *
 from typing import Union
 from collections import Counter
+import random
+from collections import defaultdict
+import statistics
 
 # for debugging, delete later
 import logging
@@ -37,6 +38,13 @@ app.add_middleware(
 
 bearer_scheme = HTTPBearer()
 
+#Helper function for getting the current user id
+def get_user_id(email: str):
+    user = supabase.table("users").select("id").eq("email", email).execute()
+    if not user.data:
+        raise HTTPException(status_code=404, detail="User does not exist")
+    
+    return user.data[0]["id"]
 
 # Decode and validates the JWT, returns the payload as the current user
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)):
@@ -251,12 +259,14 @@ def regular_signup(body: SignupRequest):
     hashed_pw = bcrypt.hashpw(body.password.encode("utf-8"), bcrypt.gensalt())
 
     name = body.name.split()
+    display_name = name[0] + " " + name[-1]
 
     new_user = supabase.table("users").insert({
         "email": body.email,
         "first_name": name[0],
         "last_name": name[-1],
         "hashed_pw": hashed_pw.decode("utf-8"),
+        "display_name": display_name,
     }).execute()
 
     user_id = new_user.data[0]["id"]
@@ -287,6 +297,7 @@ def regular_signup(body: SignupRequest):
             "email": body.email,
             "first_name": name[0],
             "last_name": name[-1],
+            "display_name": display_name,
             "exp": datetime.now(timezone.utc) + timedelta(hours=8),
         },
         JWT_SECRET,
@@ -318,6 +329,7 @@ def regular_login(body: LoginRequest):
             "email":           user["email"],
             "first_name":      user["first_name"],
             "last_name":       user["last_name"],
+            "display_name":    user["display_name"],
             "exp": datetime.now(timezone.utc) + timedelta(hours=8),
         },
         JWT_SECRET,
@@ -524,13 +536,7 @@ def set_pfp(body: PFPRequest, current_user: dict = Depends(get_current_user)):
 
 @app.post("/api/categories")
 def make_categories(body: Categories, current_user: dict = Depends(get_current_user)):
-    email = current_user.get("email")
-
-    user = supabase.table("users").select("id").eq("email", email).execute()
-    if not user.data:
-        raise HTTPException(status_code=404, detail="User does not exist")
-
-    user_id = user.data[0]["id"]
+    user_id = get_user_id(current_user.get("email"))
 
     rows = []
     for category in body.categories:
@@ -806,13 +812,7 @@ def build_friend_activity_summary(friend, friend_tasks, friend_categories):
 
 @app.get("/api/homepage", response_model=HomepageDataRequest)
 def get_homepage_data(current_user: dict = Depends(get_current_user)):
-    email = current_user.get("email")
-
-    user = supabase.table("users").select("id").eq("email", email).execute()
-    if not user.data:
-        raise HTTPException(status_code=404, detail="User does not exist")
-    else:
-        user_id = user.data[0]["id"]
+    user_id = get_user_id(current_user.get("email"))
 
     raw_categories = (
         supabase.table("categories")
@@ -947,7 +947,7 @@ def get_homepage_data(current_user: dict = Depends(get_current_user)):
             id=friend["id"],
             email=friend["email"],
             profile_picture=friend["profile_picture"],
-            full_name=f"{friend["first_name"]} {friend["last_name"]}",
+            full_name=f'{friend["first_name"]} {friend["last_name"]}',
             display_name=friend["display_name"],
             share_goals=friend["share_goals"],
             share_results=friend["share_results"],
@@ -967,7 +967,7 @@ def get_homepage_data(current_user: dict = Depends(get_current_user)):
             id=friend["id"],
             email=friend["email"],
             profile_picture=friend["profile_picture"],
-            full_name=f"{friend["first_name"]} {friend["last_name"]}",
+            full_name=f'{friend["first_name"]} {friend["last_name"]}',
             display_name=friend["display_name"],
             share_goals=friend["share_goals"],
             share_results=friend["share_results"],
@@ -987,3 +987,542 @@ def get_homepage_data(current_user: dict = Depends(get_current_user)):
     logger.debug(f"Debug: homepage data {homepage_data.model_dump_json()} ")
 
     return homepage_data
+
+
+
+
+
+
+
+
+#Wrapped queries - very long, I tried to put it in another file but it was too confusing with the supabase calls. Sorry.
+
+#get the random number of highlights, insights, etc.
+def get_random(items: list, n: int):
+    return random.sample(items, min(n, len(items)))
+
+#get all the completed tasks and associated categories from a specific user/semester
+def get_completed_tasks(u_id: str, s_id: str):
+    res = supabase.table("tasks") \
+        .select("id, category_id, title, description, due_date, start_time, end_time, status, is_recurring, created_at, completed_at, categories!inner(id, semester_id, name, priority)") \
+        .eq("user_id", u_id) \
+        .eq("categories.semester_id", s_id) \
+        .not_.is_("completed_at", "null") \
+        .execute()
+    return res.data or []
+
+#get all tasks and associated categories from a specific user/semester - faster to have two seperate queries rathern than doing python/local filtering
+def get_all_tasks(u_id: str, s_id: str):
+    res = supabase.table("tasks") \
+        .select("id, category_id, title, description, due_date, start_time, end_time, status, is_recurring, created_at, completed_at, categories!inner(id, semester_id, name, priority)") \
+        .eq("user_id", u_id) \
+        .eq("categories.semester_id", s_id) \
+        .execute()
+    return res.data or []
+
+#clean up datetime from supabase
+def parse_dt(dt):
+    if not dt:
+        return None
+    
+    if isinstance(dt, datetime):
+        return dt
+    
+    try:
+        return datetime.fromisoformat(dt.replace("Z", "+00:00"))
+    except Exception:
+        return None
+    
+#main logic for each highlight/criticism/insight/animal
+#this is all local in python, because the way I initialized the supabase didn't allow for raw SQL queries to be called
+#Since it's a one-time thing when the user creates the wrapped, it should be ok, but any more stats we make needs some additional calculations/setup here
+#Each function corresponds to one query in Notion, more of less
+def most_productive_week(tasks: list):
+    week_counts = defaultdict(int)
+
+    for task in tasks:
+        dt = parse_dt(task["completed_at"])
+        if dt:
+            week_key = dt.strftime("%Y-W%W")
+            week_counts[week_key] += 1
+
+    if not week_counts:
+        return None
+    
+    best_week = max(week_counts, key=week_counts.get)
+    #returns the best overall week and tasks completed in that week
+    return {"best_week": best_week, "tasks": week_counts[best_week]}
+
+def average_tasks(tasks: list, s_id: str):
+    semester = supabase.table("semesters").select("start_date, end_date").eq("id", s_id).execute()
+
+    if not semester.data:
+        return None
+    
+    start = parse_dt(semester.data[0]["start_date"])
+    end = parse_dt(semester.data[0]["end_date"])
+
+    if not start or not end:
+        return None
+    
+    weeks = max(((end-start).days)/7, 1)
+    avg = round(len(tasks)/weeks, 1)
+    #returns average tasks per week
+    return {"average_tasks": avg}
+
+def total_completed(tasks: list):
+    return {"total_completed": len(tasks)}
+
+def single_busiest_day(tasks: list):
+    day_counts = defaultdict(int)
+
+    for task in tasks:
+        dt = parse_dt(task["completed_at"])
+        if dt:
+            day_counts[dt.date().isoformat()] += 1
+
+    if not day_counts:
+        return None
+    
+    best_day = max(day_counts, key=day_counts.get)
+    #return best day and tasks completed that day
+    return {"day": best_day, "tasks": day_counts[best_day]}
+
+def longest_streak(tasks: list):
+    dates = sorted(set(parse_dt(task["completed_at"]).date() for task in tasks if parse_dt(task["completed_at"])))
+
+    if not dates:
+        return None
+    
+    longest = current = 1
+    for i in range(1, len(dates)):
+        if (dates[i] - dates[i - 1]).days == 1:
+            current += 1
+            longest = max(longest, current)
+        else:
+            current = 1
+
+    return {"longest_streak": longest}
+
+def peak_hour(tasks: list):
+    hour_counts = defaultdict(int)
+
+    for task in tasks:
+        dt = parse_dt(task["completed_at"])
+        if dt:
+            hour_counts[dt.hour] += 1
+
+    if not hour_counts:
+        return None
+    
+    best_hour = max(hour_counts, key=hour_counts.get)
+    return {"hour": best_hour, "completions": hour_counts[best_hour]}
+
+def best_day_of_week(tasks: list):
+    day_counts = defaultdict(int)
+    for task in tasks:
+        dt = parse_dt(task["completed_at"])
+        if dt:
+            day_counts[dt.strftime("%A")] += 1
+    if not day_counts:
+        return None
+    best = max(day_counts, key=day_counts.get)
+    return {"day_name": best, "completions": day_counts[best]}
+
+def completion_rate(all_tasks: list):
+    if not all_tasks:
+        return None
+    
+    completed = sum(1 for task in all_tasks if task["completed_at"])
+    rate = round((completed/len(all_tasks))*100, 1)
+
+    return {"completion_rate": rate}
+
+def on_time_rate(tasks: list):
+    with_deadline = [task for task in tasks if task.get("due_date")]
+
+    if not with_deadline:
+        return None
+    
+    on_time = sum(1 for t in with_deadline if parse_dt(t["completed_at"]) and parse_dt(t["due_date"])and parse_dt(t["completed_at"]) <= parse_dt(t["due_date"]))
+    rate = round((on_time/len(with_deadline))*100, 1)
+    return {"on_time_rate": rate}
+
+def total_scheduled_time(tasks):
+    total_seconds = 0
+
+    for task in tasks:
+        start = parse_dt(task.get("start_time"))
+        end = parse_dt(task.get("end_time"))
+        if start and end:
+            total_seconds += (end-start).total_seconds()
+
+    if total_seconds == 0:
+        return None
+    
+    total_minutes = total_seconds//60
+
+    return {"total_minutes": total_minutes}
+
+def neglected_category(all_tasks: list):
+    cat_stats = defaultdict(lambda: {"total": 0, "completed": 0, "name": ""})
+
+    for task in all_tasks:
+        cid = task["category_id"]
+        cat_stats[cid]["total"] += 1
+        cat_stats[cid]["name"] = task["categories"]["name"]
+        if task["completed_at"]:
+            cat_stats[cid]["completed"] += 1
+
+    if not cat_stats:
+        return None
+    
+    worst = min(cat_stats.values(), key=lambda c: c["completed"] / c["total"] if c["total"] else 1)
+    rate = round(worst["completed"] / worst["total"] * 100, 1) if worst["total"] else 0
+
+    return {"name": worst["name"], "completion_rate": rate}
+
+def procrastination_score(tasks: list):
+    diffs = []
+    for task in tasks:
+        completed = parse_dt(task["completed_at"])
+        due = parse_dt(task["due_date"])
+        if completed and due:
+            hours = (due-completed).total_seconds()/3600
+            diffs.append(hours)
+
+    if not diffs:
+        return None
+    
+    avg = round(sum(diffs)/len(diffs), 1)
+    return {"avg_hours_before_deadline": avg}
+
+def procrastination_category(tasks: list):
+    category_diffs = defaultdict(list)
+
+    for task in tasks:
+        completed = parse_dt(task["completed_at"])
+        due = parse_dt(task["due_date"])
+        if completed and due:
+            hours = (due - completed).total_seconds() / 3600
+            category_diffs[task["categories"]["name"]].append(hours)
+
+    if not category_diffs:
+        return None
+    
+    worst_category = min(category_diffs, key=lambda c: sum(category_diffs[c]) / len(category_diffs[c]))
+    avg = round(sum(category_diffs[worst_category]) / len(category_diffs[worst_category]), 1)
+
+    return {"name": worst_category, "avg_hours_before_deadline": avg}
+
+def recurring_ratio(all_tasks: list):
+    recurring = sum(1 for task in all_tasks if task.get("is_recurring"))
+    one_off = sum(1 for task in all_tasks if not task.get("is_recurring"))
+    total = len(all_tasks)
+
+    if not total:
+        return None
+    
+    pct = round((recurring/total)*100, 1)
+    return {"recurring_count": recurring, "one_off_count": one_off, "recurring_pct": pct}
+
+def productivity_trend(tasks: list, sid: str):
+    sem = supabase.table("semesters").select("start_date, end_date").eq("id", sid).execute()
+    if not sem.data:
+        return None
+    
+    start = parse_dt(sem.data[0]["start_date"])
+    end = parse_dt(sem.data[0]["end_date"])
+    if not start or not end:
+        return None
+    
+    midpoint = start + (end - start) / 2
+    first  = sum(1 for task in tasks if parse_dt(task["completed_at"]) and parse_dt(task["completed_at"]) < midpoint)
+    second = sum(1 for task in tasks if parse_dt(task["completed_at"]) and parse_dt(task["completed_at"]) >= midpoint)
+    return {"first_half": first, "second_half": second}
+
+def most_time_consuming_category(tasks: list):
+    cat_times = defaultdict(float)
+
+    for task in tasks:
+        start = parse_dt(task.get("start_time"))
+        end   = parse_dt(task.get("end_time"))
+        if start and end:
+            cat_times[task["categories"]["name"]] += (end - start).total_seconds()
+
+    if not cat_times:
+        return None
+    
+    top = max(cat_times, key=cat_times.get)
+    return {"name": top}
+
+def weekly_consistency(tasks: list):
+    week_counts = defaultdict(int)
+    for task in tasks:
+        dt = parse_dt(task["completed_at"])
+        if dt:
+            week_counts[dt.strftime("%Y-W%W")] += 1
+
+    if len(week_counts) < 2:
+        return None
+    
+    score = round(statistics.stdev(week_counts.values()), 2)
+    return {"consistency_score": score}
+
+def night_pct(tasks: list):
+    if not tasks:
+        return None
+    
+    night = sum(1 for task in tasks if parse_dt(task["completed_at"]) and (parse_dt(task["completed_at"]).hour >= 22 or parse_dt(task["completed_at"]).hour < 4))
+
+    return {"night_pct": round(night / len(tasks) * 100, 1)}
+
+def morning_pct(tasks: list):
+    if not tasks:
+        return None
+    
+    morning = sum(1 for task in tasks if parse_dt(task["completed_at"]) and 5 <= parse_dt(task["completed_at"]).hour <= 9)
+
+    return {"morning_pct": round((morning / len(tasks))* 100, 1)}
+
+def late_rate(tasks: list):
+    with_deadline = [task for task in tasks if task.get("due_date") and task.get("completed_at")]
+
+    if not with_deadline:
+        return None
+    
+    late = sum(1 for task in with_deadline if parse_dt(task["completed_at"]) > parse_dt(task["due_date"]))
+
+    return {"late_rate_pct": round((late/len(with_deadline))*100, 1)}
+
+def friend_stats(uid: str):
+    #Get friends of user, only keep friends that allow sharing the wrapped statistics
+    friendships = supabase.table("friendships") \
+        .select("user1_id", "user2_id") \
+        .or_(f"user1_id.eq.{uid}, user2_id.eq.{uid}") \
+        .eq("status", 1) \
+        .execute()
+    
+    if not friendships.data:
+        return None, None, None
+    
+    f_ids = []
+    for f in friendships.data:
+        fid = f["user2_id"] if f["user1_id"] == uid else f["user1_id"]
+        f_ids.append(fid)
+
+    friends = supabase.table("users") \
+        .select("id, display_name, share_other") \
+        .in_("id", f_ids) \
+        .execute()
+        
+    allowed = [friend for friend in (friends.data or []) if f.get("share_other")]
+    if not allowed:
+        return None, None, None
+    
+    #Finding busiest friend, friend w/ highest completion rate, and percentile ranking among friends
+    friend_task_counts = {}
+    friend_completion_rates = {}
+
+    for friend in allowed:
+        f_id = friend["id"]
+        friend_all = supabase.table("tasks").select("id, completed_at").eq("user_id", f_id).execute().data or []
+        friend_done = [task for task in friend_all if task["completed_at"]]
+        friend_task_counts[friend["display_name"]] = len(friend_all) 
+        friend_completion_rates[friend["diplay_name"]] = (round((100*len(friend_done))/len(friend_all), 1) if friend_all else 0)
+
+    busiest_friend = max(friend_task_counts, key=friend_task_counts.get)
+    busiest_result = {
+        "display_name": busiest_friend,
+        "task_count": friend_task_counts[busiest_friend],
+    }
+
+    top_friend = max(friend_completion_rates, key=friend_completion_rates.get)
+    top_result = {
+        "display_name": top_friend,
+        "completion_rate": friend_completion_rates[top_friend],
+    }
+
+    user_tasks = supabase.table("tasks").select("id, completed_at").eq("user_id", uid).execute().data or []
+    user_count = len([task for task in user_tasks if task["completed_at"]])
+    below = sum(1 for c in friend_task_counts.values() if c < user_count)
+    percentile = round((below / len(friend_task_counts)) * 100) if friend_task_counts else 0
+    percentile_result = {"percentile": percentile}
+
+    return busiest_result, top_result, percentile_result
+
+#Feedback - have season in intro slide
+@app.get("/api/semesters/{semester_id}")
+def get_semester(semester_id: str, current_user: dict = Depends(get_current_user)):
+    result = supabase.table("semesters").select("id, name").eq("id", semester_id).execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Semester not found")
+    return result.data[0]
+
+@app.get("/api/wrapped/{semester_id}/highlights")
+def get_highlights(semester_id: str, current_user: dict = Depends(get_current_user)):
+    email = current_user.get("email")
+    uid = get_user_id(email)
+    tasks = get_completed_tasks(uid, semester_id)
+    all_tasks = get_all_tasks(uid, semester_id)
+
+    results = {}
+
+    r = most_productive_week(tasks)
+    if r: results["most_productive_week"] = r
+
+    r = average_tasks(tasks, semester_id)
+    if r: results["average_tasks"] = r
+
+    r = total_completed(tasks)
+    if r: results["total_completed"] = r
+
+    r = single_busiest_day(tasks)
+    if r: results["busiest_day"] = r
+
+    r = longest_streak(tasks)
+    if r: results["longest_streak"] = r
+
+    r = peak_hour(tasks)
+    if r: results["peak_hour"] = r
+
+    r = best_day_of_week(tasks)
+    if r: results["best_day_of_week"] = r
+
+    r = completion_rate(all_tasks)
+    if r: results["completion_rate"] = r
+
+    r = on_time_rate(tasks)
+    if r: results["on_time_rate"] = r
+
+    r = total_scheduled_time(tasks)
+    if r: results["total_scheduled_time"] = r
+
+    picked = get_random(list(results.keys()), 3)
+    return {k: results[k] for k in picked}
+
+@app.get("/api/wrapped/{semester_id}/criticism")
+def get_criticism(semester_id: str, current_user: dict = Depends(get_current_user)):
+    email = current_user.get("email")
+    uid = get_user_id(email)
+    tasks = get_completed_tasks(uid, semester_id)
+    all_tasks = get_all_tasks(uid, semester_id)
+
+    results = {}
+
+    r = neglected_category(all_tasks)
+    if r: results["neglected_category"] = r
+
+    r = procrastination_score(tasks)
+    if r: results["procrastination_score"] = r
+
+    r = procrastination_category(tasks)
+    if r: results["procrastination_category"] = r
+
+    picked = get_random(list(results.keys()), 1)
+    return {k: results[k] for k in picked}
+
+@app.get("/api/wrapped/{semester_id}/insights")
+def get_insights(semester_id: str, current_user: dict = Depends(get_current_user)):
+    email = current_user.get("email")
+    uid = get_user_id(email)
+    tasks = get_completed_tasks(uid, semester_id)
+    all_tasks = get_all_tasks(uid, semester_id)
+
+    results = {}
+
+    r = recurring_ratio(all_tasks)
+    if r: results["recurring_ratio"] = r
+
+    r = productivity_trend(tasks, semester_id)
+    if r: results["productivity_trend"] = r
+
+    r = most_time_consuming_category(tasks)
+    if r: results["time_consuming_category"] = r
+
+    busiest, top_friend, percentile = friend_stats(uid)
+    if busiest:    results["busiest_friend"]        = busiest
+    if top_friend: results["friend_completion_rate"] = top_friend
+    if percentile: results["percentile"]             = percentile
+
+    picked = get_random(list(results.keys()), 2)
+    return {k: results[k] for k in picked}
+
+@app.get("/api/wrapped/{semester_id}/animal")
+def get_animal(semester_id: str, current_user: dict = Depends(get_current_user)):
+    email     = current_user.get("email")
+    uid       = get_user_id(email)
+    tasks     = get_completed_tasks(uid, semester_id)
+    all_tasks = get_all_tasks(uid, semester_id)
+
+    qualified = []
+
+    #Busy bee
+    if len(tasks) >= 100:
+        qualified.append("busy_bee")
+
+    #Calendar cat
+    r = total_scheduled_time(tasks)
+    if r:
+        qualified.append("calendar_cat")
+
+
+    #Focused fox
+    r = weekly_consistency(tasks)
+    if r and r["consistency_score"] < 5:
+        qualified.append("focused_fox")
+
+    #Deadline dragon
+    r = on_time_rate(tasks)
+    if r and r["on_time_rate"] >= 95:
+        qualified.append("deadline_dragon")
+
+    #Plan panda
+    diffs = []
+    for task in all_tasks:
+        created = parse_dt(task.get("created_at"))
+        due     = parse_dt(task.get("due_date"))
+        if created and due:
+            diffs.append((due - created).days)
+            
+    if diffs and round(sum(diffs) / len(diffs), 1) >= 7:
+        qualified.append("plan_panda")
+
+    #Night owl
+    r = night_pct(tasks)
+    if r and r["night_pct"] >= 50:
+        qualified.append("night_owl")
+
+    #Early bird
+    r = morning_pct(tasks)
+    if r and r["morning_pct"] >= 50:
+        qualified.append("early_bird")
+
+    #Locked In lobster
+    c_r = completion_rate(all_tasks)
+    o_t_r = on_time_rate(tasks)
+    if len(all_tasks) >= 50 and c_r and c_r["completion_rate_pct"] >= 80 and o_t_r and o_t_r["on_time_rate_pct"] >= 80:
+        qualified.append("locked_in_lobster")
+
+    #Lazy dog
+    r = late_rate(tasks)
+    if r and r["late_rate_pct"] >= 40:
+        qualified.append("lazy_dog")
+
+    #Motivated monkey
+    r = productivity_trend(tasks, semester_id)
+    if r and r["second_half"] > r["first_half"] * 1.5:
+        qualified.append("motivated_monkey")
+
+    #Streak stallion
+    r = longest_streak(tasks)
+    if r and r["longest_streak"] >= 14:
+        qualified.append("streak_stallion")
+
+    #Procrastinating penguin
+    r = procrastination_score(tasks)
+    if r and r["avg_hours_before_deadline"] < 24:
+        qualified.append("procrastinating_penguin")
+
+    chosen = random.choice(qualified) if qualified else "calendar_cat"
+    return {"animal": chosen}

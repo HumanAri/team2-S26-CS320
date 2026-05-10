@@ -2805,3 +2805,221 @@ input:focus { border-color: var(--input-focus); }
     width: 100%;
   }
 }
+
+
+/* ---- Wrapped Styles ---- */
+
+.wrapped-app {
+  width: 100%;
+  min-height: 520px;
+  background: var(--card-bg);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.wrapped-slide {
+  width: 100%;
+  min-height: 520px;
+  padding: 40px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  position: relative;
+}
+
+.wrapped-big-title {
+  font-size: 48px;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1.1;
+  margin-bottom: 12px;
+  letter-spacing: -1px;
+}
+
+.wrapped-sub-title {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1.2;
+  margin-bottom: 8px;
+}
+
+.wrapped-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.wrapped-stat-number {
+  font-size: 72px;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1;
+  margin: 8px 0;
+}
+
+.wrapped-stat-sub {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.wrapped-stat-caption {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-top: 16px;
+  max-width: 320px;
+  line-height: 1.5;
+}
+
+.wrapped-emoji {
+  font-size: 56px;
+  margin: 8px 0;
+  line-height: 1;
+}
+
+.wrapped-pill {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 4px 14px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  color: var(--text-primary);
+}
+
+.wrapped-pill--highlight {
+  background: var(--button-color-1);   
+  color: var(--text-primary);
+}
+
+.wrapped-pill--criticism {
+  background: var(--button-color-2);   
+  color: var(--text-primary);
+}
+
+.wrapped-pill--insight {
+  background: var(--input-bg);         
+  color: var(--text-muted);
+}
+
+.wrapped-btn {
+  margin-top: 28px;
+  padding: 0.85rem 2.5rem;
+  border-radius: 999px;
+  border: none;
+  background: var(--input-focus);      
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.wrapped-btn:hover { opacity: 0.85; }
+
+.wrapped-logo-box {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  width: 425px;
+  height: 100px;
+  background: var(--input-bg);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  box-shadow: var(--card-shadow);
+}
+
+.wrapped-nav-dots {
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+}
+
+.wrapped-nav-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--input-bg);
+  cursor: pointer;
+  transition: background 0.2s;
+  border: 2px solid var(--input-icon-color);
+}
+
+.wrapped-nav-dot--active {
+  background: var(--input-focus);
+  border-color: var(--input-focus);
+}
+
+.wrapped-animal-circle {
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  background: var(--button-color-1);   /* soft green to match highlight tone */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 80px;
+  margin: 16px auto;
+  box-shadow: var(--card-shadow);
+}
+
+.wrapped-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  min-height: 520px;
+  color: var(--text-muted);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.wrapped-btn-row {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.wrapped-btn--secondary {
+  background: var(--input-bg);
+  color: var(--text-primary);
+}
+
+.wrapped-home-btn {
+  position: absolute;
+  top: 1.5rem;
+  left: 1.5rem;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  z-index: 10;
+}
+
+.wrapped-home-btn:hover {
+  color: var(--text-primary);
+}
