@@ -23,20 +23,80 @@ function lightenHexColor(hexColor, amount = 0.8) {
   return `rgb(${mix(red)}, ${mix(green)}, ${mix(blue)})`;
 }
 
-export default function UpcomingTasksBar({ tasks = [], categories = [], onTaskClick }) {
-  const sortedTasks = [...tasks]
-    .filter(task => !task.completed) // only show upcoming (incomplete) tasks
-    .sort((a, b) => {
-      // sort by start time (earliest first)
-      if (!a.start_time) return 1;
-      if (!b.start_time) return -1;
+function parseDateValue(value) {
+  if (!value) return null;
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
 
-      const startDiff = a.start_time - b.start_time;
+  const isoDateMatch = String(value).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (isoDateMatch) {
+    return new Date(
+      Number.parseInt(isoDateMatch[1], 10),
+      Number.parseInt(isoDateMatch[2], 10) - 1,
+      Number.parseInt(isoDateMatch[3], 10)
+    );
+  }
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function formatShortDate(value) {
+  const date = parseDateValue(value);
+  return date ? `${date.getMonth() + 1}/${date.getDate()}` : '';
+}
+
+function isDueWithinNextWeek(value) {
+  const dueDate = parseDateValue(value);
+  if (!dueDate) return true;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const oneWeekOut = new Date(today);
+  oneWeekOut.setDate(today.getDate() + 7);
+  oneWeekOut.setHours(23, 59, 59, 999);
+
+  return dueDate >= today && dueDate <= oneWeekOut;
+}
+
+export default function UpcomingTasksBar({ tasks = [], categories = [], onTaskClick }) {
+  const sortedTasks = tasks
+    .flatMap((task) => {
+      const recurrenceOccurrences = task.recurrence_occurrences || [];
+
+      if (recurrenceOccurrences.length === 0) {
+        return [{ task, occurrence: null, dueDate: task.due_date, completed: task.completed }];
+      }
+
+      return recurrenceOccurrences
+        .filter((occurrence) => occurrence.status !== 'deleted')
+        .map((occurrence) => ({
+          task,
+          occurrence,
+          dueDate: occurrence.occurrence_date,
+          completed: occurrence.status === 'complete',
+        }));
+    })
+    .filter(item => !item.completed) // only show upcoming (incomplete) tasks
+    .filter(item => isDueWithinNextWeek(item.dueDate))
+    .sort((a, b) => {
+      const aDueDate = parseDateValue(a.dueDate);
+      const bDueDate = parseDateValue(b.dueDate);
+
+      if (aDueDate && bDueDate && aDueDate - bDueDate !== 0) return aDueDate - bDueDate;
+      if (!aDueDate && bDueDate) return 1;
+      if (aDueDate && !bDueDate) return -1;
+
+      // sort by start time (earliest first)
+      if (!a.task.start_time) return 1;
+      if (!b.task.start_time) return -1;
+
+      const startDiff = a.task.start_time - b.task.start_time;
       if (startDiff !== 0) return startDiff;
 
       // tie-breaker: category priority (1 = high, 3 = low)
-      const aPriority = a.my_category(categories)?.priority ?? 999;
-      const bPriority = b.my_category(categories)?.priority ?? 999;
+      const aPriority = a.task.my_category(categories)?.priority ?? 999;
+      const bPriority = b.task.my_category(categories)?.priority ?? 999;
 
       return aPriority - bPriority;
     });
@@ -49,7 +109,7 @@ export default function UpcomingTasksBar({ tasks = [], categories = [], onTaskCl
 
       <div className="upcoming-tasks-list">
         
-        {sortedTasks.map((task) => {
+        {sortedTasks.map(({ task, occurrence, dueDate, completed }) => {
           if (task.id === "skeleton") {
             const borderColor = "#d3d3d3";
             const backgroundColor = lightenHexColor(borderColor, 0.8);
@@ -70,15 +130,15 @@ export default function UpcomingTasksBar({ tasks = [], categories = [], onTaskCl
           } else {
           const category = task.my_category(categories);
           const borderColor = category?.color || '#cfd5de';
-          const backgroundColor = lightenHexColor(borderColor, task.completed ? 0.9 : 0.8);
+          const backgroundColor = lightenHexColor(borderColor, completed ? 0.9 : 0.8);
           const priority = category?.priority ?? 'N/A';
           return (
             <button
-              key={task.id}
+              key={occurrence ? `${task.id}-${occurrence.occurrence_date}` : task.id}
               type="button"
-              className={`upcoming-task-card${task.completed ? ' is-complete' : ''}`}
+              className={`upcoming-task-card${completed ? ' is-complete' : ''}`}
               style={{ borderColor, backgroundColor }}
-              onClick={() => onTaskClick?.(task)}
+              onClick={() => onTaskClick?.(task, occurrence)}
             >
               <div className="upcoming-task-top">
                 <div className="upcoming-task-title-wrap">
@@ -101,7 +161,7 @@ export default function UpcomingTasksBar({ tasks = [], categories = [], onTaskCl
               <div className="upcoming-task-bottom">
                 <div className="upcoming-task-detail">
                   <CalendarDays size={15} aria-hidden="true" />
-                  <span>{task.short_due_date()|| 'No due date'}</span>
+                  <span>{formatShortDate(dueDate) || 'No due date'}</span>
                 </div>
                 <div className="upcoming-task-detail">
                   <Clock3 size={15} aria-hidden="true" />

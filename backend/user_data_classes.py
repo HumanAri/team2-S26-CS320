@@ -27,6 +27,7 @@ class Task(BaseModel):
     created_at: datetime | None
     completed_at: datetime | None
     recurring_days: list[int]
+    recurrence_occurrences: list[dict] = []
 
 
 class FriendActivitySummary(BaseModel):

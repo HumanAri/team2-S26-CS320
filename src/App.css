@@ -2051,6 +2051,7 @@ input:focus { border-color: var(--input-focus); }
 
 .task-details-modal-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.75rem;
 }
 
@@ -2077,6 +2078,11 @@ input:focus { border-color: var(--input-focus); }
 
 .task-details-modal-action-delete {
   background: var(--button-color-2);
+}
+
+.task-details-modal-action-delete-series {
+  flex-basis: 100%;
+  background: color-mix(in srgb, var(--button-color-2) 75%, #000 25%);
 }
 
 .task-details-modal-action-done {
