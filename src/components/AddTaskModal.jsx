@@ -127,12 +127,31 @@ export default function AddTaskModal({ open = false, onClose, categories = [], o
           return
         }
 
-        window.location.reload()
-      } catch {
-        console.error('Could not reach server')
-      }
+      const savedTask = await res.json()
+
+      const new_task = new Task(
+        savedTask.id,
+        savedTask.title,
+        savedTask.description,
+        savedTask.category_id,
+        savedTask.due_date,
+        savedTask.start_time,
+        savedTask.end_time,
+        priority,
+        body.recurrence_days,
+        false
+      )
+
+      // still update local state so it shows up immediately
+      onAddTask(new_task)
+
+      resetForm()
+      onClose()
+    } catch {
+      console.error('Could not reach server')
     }
-      
+  }
+
   if (!open) return null
 
   return (
