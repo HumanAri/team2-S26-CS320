@@ -376,7 +376,7 @@ def create_task(body: TaskRequest, current_user: dict = Depends(get_current_user
     if any(day < 0 or day > 6 for day in recurrence_days):
         raise HTTPException(status_code=400, detail="Recurrence days must be integers from 0 to 6")
 
-    # Create one task row. Recurrence is represented by rows in recurrence_days.
+    # Create one task row. Concrete recurring occurrences live in recurrence_days.
     task = supabase.table("tasks").insert({
         "user_id": user_id,
         "category_id": body.category_id,
@@ -390,11 +390,32 @@ def create_task(body: TaskRequest, current_user: dict = Depends(get_current_user
     }).execute()
 
     created_task = task.data[0]
+    recurrence_occurrences = []
 
     if is_recurring:
+        base_date = datetime.fromisoformat(body.due_date) if body.due_date else datetime.now()
+
+        if body.semester_id:
+            sem = supabase.table("semesters").select("end_date").eq("id", body.semester_id).execute()
+            semester_end = datetime.fromisoformat(sem.data[0]["end_date"]) if sem.data else base_date + timedelta(weeks=16)
+        else:
+            semester_end = base_date + timedelta(weeks=16)
+
+        week_start = base_date - timedelta(days=base_date.weekday() + 1)
+        if week_start > base_date:
+            week_start -= timedelta(days=7)
+
         recurrence_rows = [
-            {"task_id": created_task["id"], "day_of_week": day}
+            {
+                "task_id": created_task["id"],
+                "day_of_week": day,
+                "occurrence_date": (week_start + timedelta(days=day + (week_offset * 7))).date().isoformat(),
+                "status": "incomplete",
+                "completed_at": None,
+            }
+            for week_offset in range(((semester_end.date() - week_start.date()).days // 7) + 1)
             for day in recurrence_days
+            if base_date.date() <= (week_start + timedelta(days=day + (week_offset * 7))).date() <= semester_end.date()
         ]
 
         saved_recurrence_days = (
@@ -407,9 +428,12 @@ def create_task(body: TaskRequest, current_user: dict = Depends(get_current_user
             supabase.table("tasks").delete().eq("id", created_task["id"]).execute()
             raise HTTPException(status_code=500, detail="Could not create recurrence days")
 
+        recurrence_occurrences = saved_recurrence_days.data
+
     return {
         **created_task,
         "recurring_days": recurrence_days if is_recurring else [],
+        "recurrence_occurrences": recurrence_occurrences,
     }
 
 
@@ -446,6 +470,9 @@ class UpdateTaskRequest(BaseModel):
     is_recurring: bool = False
     status: str
 
+class UpdateRecurrenceOccurrenceRequest(BaseModel):
+    status: str
+
 @app.patch("/api/update-task")
 def set_task(body: UpdateTaskRequest, current_user: dict = Depends(get_current_user)):
     email = current_user.get("email")
@@ -473,6 +500,59 @@ def set_task(body: UpdateTaskRequest, current_user: dict = Depends(get_current_u
         raise HTTPException(status_code=404, detail="Task not found")
 
     return task.data[0]
+
+@app.patch("/api/tasks/{task_id}/recurrence-days/{occurrence_date}")
+def set_recurrence_occurrence(
+    task_id: str,
+    occurrence_date: str,
+    body: UpdateRecurrenceOccurrenceRequest,
+    current_user: dict = Depends(get_current_user),
+):
+    if body.status not in ["incomplete", "complete", "deleted"]:
+        raise HTTPException(status_code=400, detail="Invalid occurrence status")
+
+    email = current_user.get("email")
+    user_id = get_user_id(email)
+
+    occurrence = (
+        supabase.table("recurrence_days")
+        .select("*")
+        .eq("task_id", task_id)
+        .eq("occurrence_date", occurrence_date)
+        .execute()
+    )
+
+    if not occurrence.data:
+        raise HTTPException(status_code=404, detail="Recurring occurrence not found")
+
+    task = (
+        supabase.table("tasks")
+        .select("id")
+        .eq("id", task_id)
+        .eq("user_id", user_id)
+        .execute()
+    )
+
+    if not task.data:
+        raise HTTPException(status_code=404, detail="Recurring occurrence not found")
+
+    occurrence_update = {
+        "status": body.status,
+        "completed_at": datetime.now(timezone.utc).isoformat() if body.status == "complete" else None,
+    }
+
+    updated_occurrence = (
+        supabase.table("recurrence_days")
+        .update(occurrence_update)
+        .eq("task_id", task_id)
+        .eq("occurrence_date", occurrence_date)
+        .execute()
+    )
+
+    if not updated_occurrence.data:
+        raise HTTPException(status_code=404, detail="Recurring occurrence not found")
+
+    return updated_occurrence.data[0]
     
 
 
@@ -802,13 +882,19 @@ def get_homepage_data(current_user: dict = Depends(get_current_user)):
             .execute()
         ).data
 
-    # aggregate recurring day objects in to a single hash table by task id
+    # aggregate recurring occurrence objects in to a single hash table by task id
     recurring_days = dict()
+    recurrence_occurrences = dict()
     for day in raw_recurring_days:
         if day["task_id"] in recurring_days:
             recurring_days[day["task_id"]].append(day["day_of_week"])
         else:
             recurring_days[day["task_id"]] = [day["day_of_week"]]
+
+        if day["task_id"] in recurrence_occurrences:
+            recurrence_occurrences[day["task_id"]].append(day)
+        else:
+            recurrence_occurrences[day["task_id"]] = [day]
 
     raw_friendships = (
         supabase.table("friendships")
@@ -901,7 +987,8 @@ def get_homepage_data(current_user: dict = Depends(get_current_user)):
             is_recurring=task["is_recurring"],
             created_at=parse_optional_datetime(task["created_at"]),
             completed_at=parse_optional_datetime(task.get("completed_at")),
-            recurring_days=recurring_days.get(task["id"], []) if task["is_recurring"] else []
+            recurring_days=sorted(set(recurring_days.get(task["id"], []))) if task["is_recurring"] else [],
+            recurrence_occurrences=recurrence_occurrences.get(task["id"], []) if task["is_recurring"] else []
         )
         for task in raw_tasks
     ]
@@ -1077,7 +1164,7 @@ def peak_hour(tasks: list):
     for task in tasks:
         dt = parse_dt(task["completed_at"])
         if dt:
-            edt_hour = (dt.hour - 4) % 24  # UTC-4 for EDT
+            edt_hour = (dt.hour - 4)%24 #janky fix for EDT
             hour_counts[edt_hour] += 1
 
     if not hour_counts:
