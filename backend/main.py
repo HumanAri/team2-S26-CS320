@@ -1512,7 +1512,7 @@ def get_wrapped(semester_id: str, current_user: dict = Depends(get_current_user)
     if r and r["late_rate"] >= 40: qualified.append("lazy_dog")
     #motivated monket
     r = productivity_trend(tasks, semester_id)
-    if r and r["second_half"] >= r["first_half"] * 1.5: qualified.append("motivated_monkey")
+    if r and r["second_half"] > r["first_half"] * 1.5: qualified.append("motivated_monkey")
     #streak stallion
     r = longest_streak(tasks)
     if r and r["longest_streak"] >= 14: qualified.append("streak_stallion")
