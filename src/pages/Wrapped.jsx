@@ -55,7 +55,7 @@ const HIGHLIGHTS = {
   }),
   busiest_day: (d) => ({
     emoji: "⚡", label: "Busiest Day",
-    big: formatDate(d.best_day),
+    big: formatDate(d.day),
     sub: `${d.tasks} tasks in one day`,
     caption: "Your single most productive day",
   }),
@@ -105,18 +105,32 @@ const CRITICISMS = {
     sub: `Only ${d.completion_rate}% completion rate`,
     caption: "This category needs some love next semester...",
   }),
-  procrastination_score: (d) => ({
-    emoji: "🐌", label: "Procrastination Score",
-    big: `${d.avg_hours_before_deadline}h`,
-    sub: "avg hours before deadline",
-    caption: "You're cutting it close...",
-  }),
-  procrastination_category: (d) => ({
-    emoji: "⏳", label: "You Procrastinate On",
-    big: d.name,
-    sub: `${d.avg_hours_before_deadline}h before deadline on average`,
-    caption: "In before the finish line!",
-  }),
+  procrastination_score: (d) => {
+    const hours = d.avg_hours_before_deadline;
+    const late = hours < 0;
+    return {
+      emoji: "🐌", label: "Procrastination Score",
+      big: `${Math.abs(hours)}h`,
+      sub: late ? "avg hours late" : "avg hours before deadline",
+      caption: late
+        ? "You're submitting late on average…"
+        : "You're cutting it close…",
+    };
+  },
+  procrastination_category: (d) => {
+    const hours = d.avg_hours_before_deadline;
+    const late = hours < 0;
+    return {
+      emoji: "⏳", label: "You Procrastinate On",
+      big: d.name,
+      sub: late
+        ? `${Math.abs(hours)}h late on average`
+        : `${hours}h before deadline on average`,
+      caption: late
+        ? `You tend to submit ${d.name} tasks late — worth keeping an eye on!`
+        : `${d.name} is where you cut it closest to the deadline`,
+    };
+  },
 };
 
 //Insights
@@ -272,21 +286,19 @@ function useWrappedData() {
     async function fetchAll() {
       setLoading(true);
       try {
-        const [semesterRes, highlights, criticism, insights, animalRes] = await Promise.all([
+        const [semesterRes, wrappedRes] = await Promise.all([
           baseGet(`/api/semesters/${semesterId}`, token),
-          baseGet(`/api/wrapped/${semesterId}/highlights`, token),
-          baseGet(`/api/wrapped/${semesterId}/criticism`, token),
-          baseGet(`/api/wrapped/${semesterId}/insights`, token),
-          baseGet(`/api/wrapped/${semesterId}/animal`, token),
+          baseGet(`/api/wrapped/${semesterId}/all`, token),
         ]);
-        setData({ semesterName: semesterRes.name, highlights, criticism, insights, animal: animalRes.animal });
+
+        setData({semesterName: semesterRes.name, highlights: wrappedRes.highlights, criticism: wrappedRes.criticism, insights: wrappedRes.insights, animal: wrappedRes.animal, statData: wrappedRes.data,});
       } catch (err) {
         console.error("Wrapped fetch error:", err);
         setData(null);
       } finally {
         setLoading(false);
       }
-    }
+   }
 
     fetchAll();
   }, [semesterId, token]);
@@ -298,19 +310,22 @@ function useWrappedData() {
 function buildSlides(data) {
   const slides = [];
 
-  for (const [key, val] of Object.entries(data.highlights)) {
-    const highlight = HIGHLIGHTS[key];
-    if (highlight) slides.push({ type: "highlight", rendered: highlight(val) });
+  for (const key of data.highlights) {
+    const renderer = HIGHLIGHTS[key];
+    if (renderer && data.statData[key])
+      slides.push({ type: "highlight", rendered: renderer(data.statData[key]) });
   }
 
-  for (const [key, val] of Object.entries(data.criticism)) {
-    const criticism = CRITICISMS[key];
-    if (criticism) slides.push({ type: "criticism", rendered: criticism(val) });
+  for (const key of data.criticism) {
+    const renderer = CRITICISMS[key];
+    if (renderer && data.statData[key])
+      slides.push({ type: "criticism", rendered: renderer(data.statData[key]) });
   }
 
-  for (const [key, val] of Object.entries(data.insights)) {
-    const insight = INSIGHTS[key];
-    if (insight) slides.push({ type: "insight", rendered: insight(val) });
+  for (const key of data.insights) {
+    const renderer = INSIGHTS[key];
+    if (renderer && data.statData[key])
+      slides.push({ type: "insight", rendered: renderer(data.statData[key]) });
   }
 
   slides.push({ type: "animal", animal: data.animal });
