@@ -376,7 +376,7 @@ def create_task(body: TaskRequest, current_user: dict = Depends(get_current_user
     if any(day < 0 or day > 6 for day in recurrence_days):
         raise HTTPException(status_code=400, detail="Recurrence days must be integers from 0 to 6")
 
-    # Create one task row. Concrete recurring occurrences live in recurrence_days.
+    # Create one task row. Recurrence is represented by rows in recurrence_days.
     task = supabase.table("tasks").insert({
         "user_id": user_id,
         "category_id": body.category_id,
@@ -390,32 +390,11 @@ def create_task(body: TaskRequest, current_user: dict = Depends(get_current_user
     }).execute()
 
     created_task = task.data[0]
-    recurrence_occurrences = []
 
     if is_recurring:
-        base_date = datetime.fromisoformat(body.due_date) if body.due_date else datetime.now()
-
-        if body.semester_id:
-            sem = supabase.table("semesters").select("end_date").eq("id", body.semester_id).execute()
-            semester_end = datetime.fromisoformat(sem.data[0]["end_date"]) if sem.data else base_date + timedelta(weeks=16)
-        else:
-            semester_end = base_date + timedelta(weeks=16)
-
-        week_start = base_date - timedelta(days=base_date.weekday() + 1)
-        if week_start > base_date:
-            week_start -= timedelta(days=7)
-
         recurrence_rows = [
-            {
-                "task_id": created_task["id"],
-                "day_of_week": day,
-                "occurrence_date": (week_start + timedelta(days=day + (week_offset * 7))).date().isoformat(),
-                "status": "incomplete",
-                "completed_at": None,
-            }
-            for week_offset in range(((semester_end.date() - week_start.date()).days // 7) + 1)
+            {"task_id": created_task["id"], "day_of_week": day}
             for day in recurrence_days
-            if base_date.date() <= (week_start + timedelta(days=day + (week_offset * 7))).date() <= semester_end.date()
         ]
 
         saved_recurrence_days = (
@@ -428,12 +407,9 @@ def create_task(body: TaskRequest, current_user: dict = Depends(get_current_user
             supabase.table("tasks").delete().eq("id", created_task["id"]).execute()
             raise HTTPException(status_code=500, detail="Could not create recurrence days")
 
-        recurrence_occurrences = saved_recurrence_days.data
-
     return {
         **created_task,
         "recurring_days": recurrence_days if is_recurring else [],
-        "recurrence_occurrences": recurrence_occurrences,
     }
 
 
@@ -470,9 +446,6 @@ class UpdateTaskRequest(BaseModel):
     is_recurring: bool = False
     status: str
 
-class UpdateRecurrenceOccurrenceRequest(BaseModel):
-    status: str
-
 @app.patch("/api/update-task")
 def set_task(body: UpdateTaskRequest, current_user: dict = Depends(get_current_user)):
     email = current_user.get("email")
@@ -500,59 +473,6 @@ def set_task(body: UpdateTaskRequest, current_user: dict = Depends(get_current_u
         raise HTTPException(status_code=404, detail="Task not found")
 
     return task.data[0]
-
-@app.patch("/api/tasks/{task_id}/recurrence-days/{occurrence_date}")
-def set_recurrence_occurrence(
-    task_id: str,
-    occurrence_date: str,
-    body: UpdateRecurrenceOccurrenceRequest,
-    current_user: dict = Depends(get_current_user),
-):
-    if body.status not in ["incomplete", "complete", "deleted"]:
-        raise HTTPException(status_code=400, detail="Invalid occurrence status")
-
-    email = current_user.get("email")
-    user_id = get_user_id(email)
-
-    occurrence = (
-        supabase.table("recurrence_days")
-        .select("*")
-        .eq("task_id", task_id)
-        .eq("occurrence_date", occurrence_date)
-        .execute()
-    )
-
-    if not occurrence.data:
-        raise HTTPException(status_code=404, detail="Recurring occurrence not found")
-
-    task = (
-        supabase.table("tasks")
-        .select("id")
-        .eq("id", task_id)
-        .eq("user_id", user_id)
-        .execute()
-    )
-
-    if not task.data:
-        raise HTTPException(status_code=404, detail="Recurring occurrence not found")
-
-    occurrence_update = {
-        "status": body.status,
-        "completed_at": datetime.now(timezone.utc).isoformat() if body.status == "complete" else None,
-    }
-
-    updated_occurrence = (
-        supabase.table("recurrence_days")
-        .update(occurrence_update)
-        .eq("task_id", task_id)
-        .eq("occurrence_date", occurrence_date)
-        .execute()
-    )
-
-    if not updated_occurrence.data:
-        raise HTTPException(status_code=404, detail="Recurring occurrence not found")
-
-    return updated_occurrence.data[0]
     
 
 
@@ -882,19 +802,13 @@ def get_homepage_data(current_user: dict = Depends(get_current_user)):
             .execute()
         ).data
 
-    # aggregate recurring occurrence objects in to a single hash table by task id
+    # aggregate recurring day objects in to a single hash table by task id
     recurring_days = dict()
-    recurrence_occurrences = dict()
     for day in raw_recurring_days:
         if day["task_id"] in recurring_days:
             recurring_days[day["task_id"]].append(day["day_of_week"])
         else:
             recurring_days[day["task_id"]] = [day["day_of_week"]]
-
-        if day["task_id"] in recurrence_occurrences:
-            recurrence_occurrences[day["task_id"]].append(day)
-        else:
-            recurrence_occurrences[day["task_id"]] = [day]
 
     raw_friendships = (
         supabase.table("friendships")
@@ -987,8 +901,7 @@ def get_homepage_data(current_user: dict = Depends(get_current_user)):
             is_recurring=task["is_recurring"],
             created_at=parse_optional_datetime(task["created_at"]),
             completed_at=parse_optional_datetime(task.get("completed_at")),
-            recurring_days=sorted(set(recurring_days.get(task["id"], []))) if task["is_recurring"] else [],
-            recurrence_occurrences=recurrence_occurrences.get(task["id"], []) if task["is_recurring"] else []
+            recurring_days=recurring_days.get(task["id"], []) if task["is_recurring"] else []
         )
         for task in raw_tasks
     ]
@@ -1096,6 +1009,9 @@ def most_productive_week(tasks: list):
         if dt:
             week_key = dt.strftime("%Y-W%W")
             week_counts[week_key] += 1
+            if week_key not in week_counts:
+                monday = dt - timedelta(days=dt.weekday())
+                week_counts[week_key] = monday.strftime("%Y-%m-%d")
 
     if not week_counts:
         return None
@@ -1161,7 +1077,8 @@ def peak_hour(tasks: list):
     for task in tasks:
         dt = parse_dt(task["completed_at"])
         if dt:
-            hour_counts[dt.hour] += 1
+            edt_hour = (dt.hour - 4) % 24  # UTC-4 for EDT
+            hour_counts[edt_hour] += 1
 
     if not hour_counts:
         return None
@@ -1277,8 +1194,8 @@ def recurring_ratio(all_tasks: list):
     pct = round((recurring/total)*100, 1)
     return {"recurring_count": recurring, "one_off_count": one_off, "recurring_pct": pct}
 
-def productivity_trend(tasks: list, sid: str):
-    sem = supabase.table("semesters").select("start_date, end_date").eq("id", sid).execute()
+def productivity_trend(tasks: list, s_id: str):
+    sem = supabase.table("semesters").select("start_date, end_date").eq("id", s_id).execute()
     if not sem.data:
         return None
     
@@ -1344,13 +1261,13 @@ def late_rate(tasks: list):
     
     late = sum(1 for task in with_deadline if parse_dt(task["completed_at"]) > parse_dt(task["due_date"]))
 
-    return {"late_rate_pct": round((late/len(with_deadline))*100, 1)}
+    return {"late_rate": round((late/len(with_deadline))*100, 1)}
 
-def friend_stats(uid: str):
+def friend_stats(u_id: str):
     #Get friends of user, only keep friends that allow sharing the wrapped statistics
     friendships = supabase.table("friendships") \
         .select("user1_id", "user2_id") \
-        .or_(f"user1_id.eq.{uid}, user2_id.eq.{uid}") \
+        .or_(f"user1_id.eq.{u_id}, user2_id.eq.{u_id}") \
         .eq("status", 1) \
         .execute()
     
@@ -1359,7 +1276,7 @@ def friend_stats(uid: str):
     
     f_ids = []
     for f in friendships.data:
-        fid = f["user2_id"] if f["user1_id"] == uid else f["user1_id"]
+        fid = f["user2_id"] if f["user1_id"] == u_id else f["user1_id"]
         f_ids.append(fid)
 
     friends = supabase.table("users") \
@@ -1394,7 +1311,7 @@ def friend_stats(uid: str):
         "completion_rate": friend_completion_rates[top_friend],
     }
 
-    user_tasks = supabase.table("tasks").select("id, completed_at").eq("user_id", uid).execute().data or []
+    user_tasks = supabase.table("tasks").select("id, completed_at").eq("user_id", u_id).execute().data or []
     user_count = len([task for task in user_tasks if task["completed_at"]])
     below = sum(1 for c in friend_task_counts.values() if c < user_count)
     percentile = round((below / len(friend_task_counts)) * 100) if friend_task_counts else 0
@@ -1410,170 +1327,118 @@ def get_semester(semester_id: str, current_user: dict = Depends(get_current_user
         raise HTTPException(status_code=404, detail="Semester not found")
     return result.data[0]
 
-@app.get("/api/wrapped/{semester_id}/highlights")
-def get_highlights(semester_id: str, current_user: dict = Depends(get_current_user)):
+#Getting rate limited from API calls - use one API call
+@app.get("/api/wrapped/{semester_id}/all")
+def get_wrapped(semester_id: str, current_user: dict = Depends(get_current_user)):
     email = current_user.get("email")
-    uid = get_user_id(email)
-    tasks = get_completed_tasks(uid, semester_id)
-    all_tasks = get_all_tasks(uid, semester_id)
+    u_id = get_user_id(email)
 
-    results = {}
+    #Now just fetching once, instead of fetching for highlights, criticism, insights, and animal
+    tasks = get_completed_tasks(u_id, semester_id)
+    all_tasks = get_all_tasks(u_id, semester_id)
 
+    # Highlights
+    highlight_results = {}
     r = most_productive_week(tasks)
-    if r: results["most_productive_week"] = r
-
+    if r: highlight_results["most_productive_week"] = r
     r = average_tasks(tasks, semester_id)
-    if r: results["average_tasks"] = r
-
+    if r: highlight_results["average_tasks"] = r
     r = total_completed(tasks)
-    if r: results["total_completed"] = r
-
+    if r: highlight_results["total_completed"] = r
     r = single_busiest_day(tasks)
-    if r: results["busiest_day"] = r
-
+    if r: highlight_results["day"] = r
     r = longest_streak(tasks)
-    if r: results["longest_streak"] = r
-
+    if r: highlight_results["longest_streak"] = r
     r = peak_hour(tasks)
-    if r: results["peak_hour"] = r
-
+    if r: highlight_results["hour"] = r
     r = best_day_of_week(tasks)
-    if r: results["best_day_of_week"] = r
-
+    if r: highlight_results["best_day_of_week"] = r
     r = completion_rate(all_tasks)
-    if r: results["completion_rate"] = r
-
+    if r: highlight_results["completion_rate"] = r
     r = on_time_rate(tasks)
-    if r: results["on_time_rate"] = r
-
+    if r: highlight_results["on_time_rate"] = r
     r = total_scheduled_time(tasks)
-    if r: results["total_scheduled_time"] = r
+    if r: highlight_results["total_scheduled_time"] = r
 
-    picked = get_random(list(results.keys()), 3)
-    return {k: results[k] for k in picked}
-
-@app.get("/api/wrapped/{semester_id}/criticism")
-def get_criticism(semester_id: str, current_user: dict = Depends(get_current_user)):
-    email = current_user.get("email")
-    uid = get_user_id(email)
-    tasks = get_completed_tasks(uid, semester_id)
-    all_tasks = get_all_tasks(uid, semester_id)
-
-    results = {}
-
+    # Criticisms
+    criticism_results = {}
     r = neglected_category(all_tasks)
-    if r: results["neglected_category"] = r
-
+    if r: criticism_results["neglected_category"] = r
     r = procrastination_score(tasks)
-    if r: results["procrastination_score"] = r
-
+    if r: criticism_results["procrastination_score"] = r
     r = procrastination_category(tasks)
-    if r: results["procrastination_category"] = r
+    if r: criticism_results["procrastination_category"] = r
 
-    picked = get_random(list(results.keys()), 1)
-    return {k: results[k] for k in picked}
-
-@app.get("/api/wrapped/{semester_id}/insights")
-def get_insights(semester_id: str, current_user: dict = Depends(get_current_user)):
-    email = current_user.get("email")
-    uid = get_user_id(email)
-    tasks = get_completed_tasks(uid, semester_id)
-    all_tasks = get_all_tasks(uid, semester_id)
-
-    results = {}
-
+    # Insights
+    insight_results = {}
     r = recurring_ratio(all_tasks)
-    if r: results["recurring_ratio"] = r
-
+    if r: insight_results["recurring_ratio"] = r
     r = productivity_trend(tasks, semester_id)
-    if r: results["productivity_trend"] = r
-
+    if r: insight_results["productivity_trend"] = r
     r = most_time_consuming_category(tasks)
-    if r: results["time_consuming_category"] = r
+    if r: insight_results["name"] = r
+    busiest, top_friend, percentile = friend_stats(u_id)
+    if busiest: insight_results["busiest_friend"] = busiest
+    if top_friend: insight_results["friend_completion_rate"] = top_friend
+    if percentile: insight_results["percentile"] = percentile
 
-    busiest, top_friend, percentile = friend_stats(uid)
-    if busiest:    results["busiest_friend"]        = busiest
-    if top_friend: results["friend_completion_rate"] = top_friend
-    if percentile: results["percentile"]             = percentile
-
-    picked = get_random(list(results.keys()), 2)
-    return {k: results[k] for k in picked}
-
-@app.get("/api/wrapped/{semester_id}/animal")
-def get_animal(semester_id: str, current_user: dict = Depends(get_current_user)):
-    email     = current_user.get("email")
-    uid       = get_user_id(email)
-    tasks     = get_completed_tasks(uid, semester_id)
-    all_tasks = get_all_tasks(uid, semester_id)
-
+    # Animal
     qualified = []
-
-    #Busy bee
-    if len(tasks) >= 100:
-        qualified.append("busy_bee")
-
-    #Calendar cat
+    #busy bee
+    if len(tasks) >= 100: qualified.append("busy_bee")
     r = total_scheduled_time(tasks)
-    if r:
-        qualified.append("calendar_cat")
-
-
-    #Focused fox
+    #calendar cat
+    if r: qualified.append("calendar_cat")
     r = weekly_consistency(tasks)
-    if r and r["consistency_score"] < 5:
-        qualified.append("focused_fox")
-
-    #Deadline dragon
+    #focused fox
+    if r and r["consistency_score"] < 5: qualified.append("focused_fox")
+    #deadline dragon
     r = on_time_rate(tasks)
-    if r and r["on_time_rate"] >= 95:
-        qualified.append("deadline_dragon")
+    if r and r["on_time_rate"] >= 95: qualified.append("deadline_dragon")
 
-    #Plan panda
+    #plan panda
     diffs = []
     for task in all_tasks:
         created = parse_dt(task.get("created_at"))
-        due     = parse_dt(task.get("due_date"))
+        due = parse_dt(task.get("due_date"))
         if created and due:
-            diffs.append((due - created).days)
+            diffs.append((due-created).days)
             
     if diffs and round(sum(diffs) / len(diffs), 1) >= 7:
         qualified.append("plan_panda")
 
-    #Night owl
+    #night owl
     r = night_pct(tasks)
-    if r and r["night_pct"] >= 50:
-        qualified.append("night_owl")
-
-    #Early bird
+    if r and r["night_pct"] >= 50: qualified.append("night_owl")
+    #early bird
     r = morning_pct(tasks)
-    if r and r["morning_pct"] >= 50:
-        qualified.append("early_bird")
-
-    #Locked In lobster
+    if r and r["morning_pct"] >= 50: qualified.append("early_bird")
+    
+    #locked in lobster
     c_r = completion_rate(all_tasks)
     o_t_r = on_time_rate(tasks)
-    if len(all_tasks) >= 50 and c_r and c_r["completion_rate_pct"] >= 80 and o_t_r and o_t_r["on_time_rate_pct"] >= 80:
+    if len(all_tasks) >= 50 and c_r and c_r["completion_rate"] >= 80 and o_t_r and o_t_r["on_time_rate"] >= 80:
         qualified.append("locked_in_lobster")
 
-    #Lazy dog
+    #lazy dog
     r = late_rate(tasks)
-    if r and r["late_rate_pct"] >= 40:
-        qualified.append("lazy_dog")
-
-    #Motivated monkey
+    if r and r["late_rate"] >= 40: qualified.append("lazy_dog")
+    #motivated monket
     r = productivity_trend(tasks, semester_id)
-    if r and r["second_half"] > r["first_half"] * 1.5:
-        qualified.append("motivated_monkey")
-
-    #Streak stallion
+    if r and r["second_half"] >= r["first_half"] * 1.5: qualified.append("motivated_monkey")
+    #streak stallion
     r = longest_streak(tasks)
-    if r and r["longest_streak"] >= 14:
-        qualified.append("streak_stallion")
-
-    #Procrastinating penguin
+    if r and r["longest_streak"] >= 14: qualified.append("streak_stallion")
+    #procrastinating penguin
     r = procrastination_score(tasks)
-    if r and r["avg_hours_before_deadline"] < 24:
-        qualified.append("procrastinating_penguin")
+    if r and r["avg_hours_before_deadline"] < 24: qualified.append("procrastinating_penguin")
 
-    chosen = random.choice(qualified) if qualified else "calendar_cat"
-    return {"animal": chosen}
+    animal = random.choice(qualified) if qualified else "calendar_cat"
+
+    return {
+        "highlights": get_random(list(highlight_results.keys()), 3),
+        "criticism": get_random(list(criticism_results.keys()), 1),
+        "insights": get_random(list(insight_results.keys()), 2),
+        "animal": animal,
+        "data": {**highlight_results, **criticism_results, **insight_results},
+    }
